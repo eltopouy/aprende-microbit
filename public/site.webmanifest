@@ -1,0 +1,17 @@
+{
+  "name": "Aprende Micro:bit 3D",
+  "short_name": "Microbit 3D",
+  "description": "Simulador interactivo en 3D para aprender programación con BBC micro:bit v2",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#171920",
+  "theme_color": "#f6eddd",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2311141a'/><circle cx='30' cy='40' r='12' fill='%23f5b731'/><circle cx='70' cy='40' r='12' fill='%23f5b731'/><rect x='25' y='65' width='50' height='12' rx='6' fill='%23e63946'/></svg>",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -40,6 +40,25 @@ class App {
 
     this.board = new MicrobitBoard3D(this.canvas, this.stage, {
       onSelectPart: (partId) => this.showInspector(partId),
+      onButtonPress: (btn) => {
+        if (btn === 'A') {
+          this.sim.triggerButtonA(true);
+          setTimeout(() => this.sim.triggerButtonA(false), 220);
+        } else if (btn === 'B') {
+          this.sim.triggerButtonB(true);
+          setTimeout(() => this.sim.triggerButtonB(false), 220);
+        }
+      },
+      onLogoTouch: () => {
+        this.sim.triggerLogoTouch(true);
+        setTimeout(() => this.sim.triggerLogoTouch(false), 300);
+      },
+      onCameraAngle: (azimuth) => {
+        const needle = document.getElementById('compass-needle');
+        if (needle) {
+          needle.style.transform = `rotate(${azimuth}rad)`;
+        }
+      },
       onUpdateFrame: (positions) => this.leaders.update(positions)
     });
 
@@ -50,8 +69,29 @@ class App {
 
   init() {
     this.setupEventListeners();
+
+    // Comprobar si hay hash en la URL (#leccion-1 a #leccion-12)
+    const hashMatch = window.location.hash.match(/#leccion-(\d+)/);
+    if (hashMatch) {
+      const hashIdx = parseInt(hashMatch[1], 10) - 1;
+      if (hashIdx >= 0 && hashIdx < lessons.length) {
+        this.currentLessonIdx = hashIdx;
+      }
+    }
+
     this.loadLesson(this.currentLessonIdx);
     this.updateProgressUI();
+
+    // Escuchar cambios de hash manuales
+    window.addEventListener('hashchange', () => {
+      const match = window.location.hash.match(/#leccion-(\d+)/);
+      if (match) {
+        const idx = parseInt(match[1], 10) - 1;
+        if (idx >= 0 && idx < lessons.length && idx !== this.currentLessonIdx) {
+          this.loadLesson(idx, false);
+        }
+      }
+    });
   }
 
   setupEventListeners() {
@@ -160,6 +200,11 @@ class App {
         this.nextLesson();
       } else if (e.key === '[') {
         this.prevLesson();
+      } else if (/^[1-9]$/.test(e.key)) {
+        const targetIdx = Number(e.key) - 1;
+        if (targetIdx < lessons.length) this.loadLesson(targetIdx);
+      } else if (e.key === '0') {
+        if (lessons.length >= 10) this.loadLesson(9);
       }
     });
 
@@ -168,7 +213,7 @@ class App {
     this.renderPartsModal();
   }
 
-  loadLesson(idx) {
+  loadLesson(idx, updateHash = true) {
     if (idx < 0 || idx >= lessons.length) return;
     this.currentLessonIdx = idx;
     const lesson = lessons[idx];
@@ -184,6 +229,12 @@ class App {
 
     // Actualizar progreso
     this.updateProgressUI();
+
+    // Actualizar Título y Hash para SEO y enlaces directos
+    document.title = `${lesson.title} — Aprende Micro:bit 3D`;
+    if (updateHash) {
+      window.history.replaceState(null, '', `#leccion-${idx + 1}`);
+    }
   }
 
   renderTabContent() {

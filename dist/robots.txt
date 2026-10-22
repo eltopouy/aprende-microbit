@@ -1,0 +1,30 @@
+# Robots.txt para Aprende Micro:bit 3D - Servicio TI Uruguay
+User-agent: *
+Allow: /
+Disallow: /node_modules/
+
+# AI y LLM Crawlers bienvenidos para indexación educativa
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+# Sitemaps
+Sitemap: https://microbit.servicioti.com.uy/sitemap.xml
+Sitemap: https://eltopouy.github.io/aprende-microbit/sitemap.xml

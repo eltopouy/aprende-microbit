@@ -1,0 +1,47 @@
+# Aprende Micro:bit 3D — Plataforma Educativa Interactiva
+
+> Simulador 3D interactivo en español para aprender programación y robótica con la computadora de placa única BBC micro:bit v2. Desarrollado por Servicio TI Uruguay (https://www.servicioti.com.uy).
+
+## Resumen del Proyecto
+
+Aprende Micro:bit 3D es una plataforma web educativa diseñada para docentes, estudiantes de educación primaria, secundaria, bachillerato tecnológico (Ceibal, UTU, ANEP) y aficionados a la robótica en Iberoamérica.
+
+Inspirada en la estética y potencia didáctica de *Learn Arduino* (https://learn-arduino-red.vercel.app/), traslada todo ese poder visual e interactivo a la **BBC micro:bit v2**:
+- Placa 3D interactiva en WebGL (Three.js) con cámara orbital, zoom y minimapa.
+- Matriz 5x5 de LEDs con control de brillo individual (0 a 9) y efecto bloom.
+- Botones táctiles A y B, logo dorado capacitivo v2 y acelerómetro con detección de agitación (shake).
+- Altavoz v2 con síntesis sonora en tiempo real mediante Web Audio API.
+- Monitor serie a 115200 baudios con telemetría de sensores.
+- Código en doble vista: MicroPython y MakeCode Blocks / JavaScript.
+
+## Enlaces Principales
+
+- Sitio Web / Simulador: https://microbit.servicioti.com.uy/
+- Alternativa GitHub Pages: https://eltopouy.github.io/aprende-microbit/
+- Repositorio de Código: https://github.com/eltopouy/aprende-microbit
+- Documentación completa para LLMs: https://microbit.servicioti.com.uy/llms-full.txt
+- Portal Institucional: https://www.servicioti.com.uy/
+
+## Índice del Curso (12 Lecciones Prácticas)
+
+1. [Conoce la micro:bit v2](https://microbit.servicioti.com.uy/#leccion-1): Anatomía, procesador nRF52833 Cortex-M4, conector de borde y primer texto en pantalla.
+2. [Matriz 5x5 y Emoticonos](https://microbit.servicioti.com.uy/#leccion-2): Control de los 25 LEDs, animación de corazón palpitante con `Image.HEART` y brillo variable.
+3. [Botones A y B: Tu Primer Mando](https://microbit.servicioti.com.uy/#leccion-3): Entradas digitales, pull-up interno, `is_pressed()`, contador interactivo y reinicio con A+B.
+4. [Logo Táctil Capacitivo](https://microbit.servicioti.com.uy/#leccion-4): Sensor capacitivo exclusivo de micro:bit v2 con `pin_logo.is_touched()`.
+5. [Termómetro Digital y Alertas](https://microbit.servicioti.com.uy/#leccion-5): Lectura térmica del procesador en °C con `temperature()` y avisos de calor/frío.
+6. [Sensor de Luz Oculto](https://microbit.servicioti.com.uy/#leccion-6): Detección fotovoltaica inversa en los LEDs con `display.read_light_level()` y farola automática.
+7. [Brújula y Orientación](https://microbit.servicioti.com.uy/#leccion-7): Magnetómetro 3D con `compass.heading()` (0° a 360°) y flechas hacia los puntos cardinales.
+8. [Acelerómetro y Dado Mágico](https://microbit.servicioti.com.uy/#leccion-8): Detección inercial con `accelerometer.is_gesture('shake')` y números aleatorios.
+9. [Melodías y Altavoz Integrado](https://microbit.servicioti.com.uy/#leccion-9): Síntesis de ondas cuadradas con Web Audio API, melodías (`music.BA_DING`, `ODE`) y notas.
+10. [Pines Analógicos y Potenciómetro](https://microbit.servicioti.com.uy/#leccion-10): Entradas ADC de 10 bits en Pin P0 (0 a 1023) y barra gráfica en la pantalla.
+11. [Control de Servomotor 9g](https://microbit.servicioti.com.uy/#leccion-11): Señales PWM de 50 Hz para posicionamiento angular exacto de 0° a 180°.
+12. [Proyecto Final: Alarma Antirrobo con Sonar](https://microbit.servicioti.com.uy/#leccion-12): Sensor ultrasónico HC-SR04, detección de proximidad, sirena de dos tonos y aviso STOP.
+
+## Resumen de la API de MicroPython en micro:bit v2
+
+- Pantalla: `display.show(image)`, `display.scroll(text)`, `display.set_pixel(x, y, val)`, `display.clear()`
+- Botones: `button_a.is_pressed()`, `button_a.was_pressed()`, `button_b.is_pressed()`
+- Logo táctil: `pin_logo.is_touched()`
+- Sensores en placa: `temperature()`, `display.read_light_level()`, `compass.heading()`, `accelerometer.is_gesture("shake")`
+- Sonido: `music.play(melody)`, `music.pitch(freq, duration_ms)`
+- Pines de borde: `pin0.read_analog()`, `pin0.write_analog(value)`, `pin1.write_digital(value)`

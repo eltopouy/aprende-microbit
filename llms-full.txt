@@ -1,0 +1,278 @@
+# Aprende Micro:bit 3D — Documentación Completa del Curso y API
+
+Desarrollado por Servicio TI Uruguay (https://www.servicioti.com.uy)
+Plataforma: BBC micro:bit v2 (Hardware v2.2 / v2.21)
+Lenguajes soportados: MicroPython y Microsoft MakeCode (JavaScript / Bloques)
+
+---
+
+## 1. ESPECIFICACIONES DE LA BBC MICRO:BIT V2
+
+- **Microcontrolador**: Nordic Semiconductor nRF52833 (ARM Cortex-M4 de 32 bits a 64 MHz con FPU).
+- **Memoria**: 512 KB Flash ROM, 128 KB SRAM.
+- **Pantalla**: Matriz de 5x5 diodos LED rojos de alta intensidad con 10 niveles de brillo (0-9).
+- **Entradas Integradas**:
+  - Pulsador táctil digital izquierdo: Botón A (Pull-up interno en Pin 5).
+  - Pulsador táctil digital derecho: Botón B (Pull-up interno en Pin 11).
+  - Sensor capacitivo táctil: Logo dorado de micro:bit v2.
+  - Micrófono MEMS: Knowles con preamplificador analógico y LED de actividad frontal.
+  - Sensor inercial: Acelerómetro triaxial y magnetómetro LSM303AGR / FXOS8700CQ.
+  - Sensor térmico: Medición interna del chip nRF52 (-40 °C a 105 °C, entorno escolar seguro: -5 °C a 50 °C).
+  - Sensor fotovoltaico: Lectura inversa de luz sobre la matriz de LEDs (0 a 255 lux).
+- **Salidas Integradas**:
+  - Altavoz magnético trasero: Reproducción de audio y frecuencias con amplificador clase D.
+  - Matriz LED 5x5 con animación y scrolling de texto.
+- **Conector de Borde**:
+  - 25 pines en total con baño de oro electrolítico ENIG.
+  - 5 terminales grandes con orificio para pinzas cocodrilo y conectores banana de 4mm: Pin 0, Pin 1, Pin 2, 3V (alimentación 3.3V regulada hasta 200mA) y GND (tierra).
+  - 20 pistas finas intermedias con buses I2C, SPI, UART y PWM.
+
+---
+
+## 2. PLAN DE ESTUDIOS: LAS 12 LECCIONES COMPLETAS
+
+### Lección 1: Conoce la micro:bit v2
+- **Concepto**: Arquitectura básica de computadoras embebidas, inicialización y salida de texto.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+display.scroll("¡HOLA MICRO:BIT!")
+display.show(Image.HAPPY)
+while True:
+    sleep(100)
+\`\`\`
+- **MakeCode**:
+\`\`\`javascript
+basic.showString("¡HOLA MICRO:BIT!")
+basic.showIcon(IconNames.Happy)
+basic.forever(function () {
+    basic.pause(100)
+})
+\`\`\`
+
+### Lección 2: Matriz LED 5x5 y Emoticonos
+- **Concepto**: Píxeles digitales, refresco de pantalla, animación por cuadros y modulación PWM de brillo.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+while True:
+    display.show(Image.HEART)
+    sleep(500)
+    display.show(Image.HEART_SMALL)
+    sleep(500)
+\`\`\`
+- **MakeCode**:
+\`\`\`javascript
+basic.forever(function () {
+    basic.showIcon(IconNames.Heart)
+    basic.pause(500)
+    basic.showIcon(IconNames.SmallHeart)
+    basic.pause(500)
+})
+\`\`\`
+
+### Lección 3: Botones A y B: Tu Primer Mando
+- **Concepto**: Entradas digitales activas a nivel bajo, resistencias pull-up, antirrebote (debouncing) y variables de estado.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+contador = 0
+while True:
+    if button_a.is_pressed() and button_b.is_pressed():
+        contador = 0
+        display.show(Image.ASLEEP)
+        sleep(500)
+    elif button_a.was_pressed():
+        contador += 1
+        print("Contador:", contador)
+    elif button_b.was_pressed():
+        contador = max(0, contador - 1)
+        print("Contador:", contador)
+    display.show(str(contador))
+    sleep(100)
+\`\`\`
+- **MakeCode**:
+\`\`\`javascript
+let contador = 0
+input.onButtonPressed(Button.A, function () {
+    contador += 1
+    basic.showNumber(contador)
+})
+input.onButtonPressed(Button.B, function () {
+    if (contador > 0) { contador -= 1 }
+    basic.showNumber(contador)
+})
+input.onButtonPressed(Button.AB, function () {
+    contador = 0
+    basic.showIcon(IconNames.Asleep)
+})
+\`\`\`
+
+### Lección 4: Logo Táctil Capacitivo (v2)
+- **Concepto**: Sensores táctiles capacitivos, detección por contacto de piel y biestables (toggle switch).
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+luz_encendida = False
+while True:
+    if pin_logo.is_touched():
+        luz_encendida = not luz_encendida
+        print("Toque detectado. Estado:", luz_encendida)
+        if luz_encendida:
+            display.show(Image("99999:99999:99999:99999:99999"))
+        else:
+            display.clear()
+        sleep(500)
+    sleep(50)
+\`\`\`
+
+### Lección 5: Termómetro Digital y Alertas
+- **Concepto**: Sensores analógicos internos, conversión ADC y umbrales de decisión térmica.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+UMBRAL_CALOR = 28
+while True:
+    temp_actual = temperature()
+    print("Temperatura ambiente:", temp_actual, "°C")
+    if temp_actual >= UMBRAL_CALOR:
+        display.show(Image.ANGRY)
+    elif temp_actual < 15:
+        display.show(Image.SAD)
+    else:
+        display.show(Image.HAPPY)
+    sleep(1000)
+\`\`\`
+
+### Lección 6: Sensor de Luz Oculto
+- **Concepto**: Efecto fotovoltaico inverso en semiconductores LED y automatismos nocturnos.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+UMBRAL_NOCHE = 60
+while True:
+    luz = display.read_light_level()
+    print("Nivel de luz detectado:", luz)
+    if luz < UMBRAL_NOCHE:
+        display.show(Image.DIAMOND)
+    else:
+        display.clear()
+    sleep(200)
+\`\`\`
+
+### Lección 7: Brújula Digital y Orientación
+- **Concepto**: Campo magnético terrestre, magnetómetros triaxiales, ángulos náuticos (0° a 360°) y rumbos cardinales.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+while True:
+    rumbo = compass.heading()
+    print("Rumbo magnético:", rumbo, "grados")
+    if rumbo < 45 or rumbo >= 315:
+        display.show(Image.ARROW_N)
+    elif rumbo < 135:
+        display.show(Image.ARROW_E)
+    elif rumbo < 225:
+        display.show(Image.ARROW_S)
+    else:
+        display.show(Image.ARROW_W)
+    sleep(150)
+\`\`\`
+
+### Lección 8: Acelerómetro y Dado Mágico
+- **Concepto**: Detección de inercia, gravedad en 3 ejes, gestos inerciales ("shake") y generadores pseudoaleatorios.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+import random
+display.show("DADO")
+sleep(600)
+while True:
+    if accelerometer.is_gesture("shake"):
+        for i in range(3):
+            display.show(Image.DIAMOND_SMALL)
+            sleep(60)
+            display.show(Image.DIAMOND)
+            sleep(60)
+        numero = random.randint(1, 6)
+        print("¡Tirada del dado! Resultado:", numero)
+        display.show(str(numero))
+    sleep(100)
+\`\`\`
+
+### Lección 9: Sintetizador Musical y Altavoz
+- **Concepto**: Ondas acústicas, frecuencias fundamentales en Hercios (Hz), notas musicales y modulación de tonos.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+import music
+display.show(Image.MUSIC_QUAVER)
+print("Reproduciendo melodía de bienvenida...")
+music.play(music.BA_DING)
+while True:
+    if button_a.was_pressed():
+        music.play(music.ODE)
+    elif button_b.was_pressed():
+        music.pitch(523, 300) # C5
+    sleep(100)
+\`\`\`
+
+### Lección 10: Entradas Analógicas y Potenciómetro
+- **Concepto**: Divisor resistivo de tensión, conversión analógico-digital (ADC) de 10 bits (0-1023) y visualización en barra.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+while True:
+    lectura = pin0.read_analog()
+    print("Valor analógico P0:", lectura)
+    nivel = int(lectura * 5 / 1024)
+    display.clear()
+    for y in range(5 - nivel, 5):
+        for x in range(5):
+            display.set_pixel(x, y, 9)
+    sleep(80)
+\`\`\`
+
+### Lección 11: Control de Servomotor SG90
+- **Concepto**: Modulación por ancho de pulsos (PWM) a 50 Hz (periodo 20 ms), relación entre microsegundos y ángulo mecánico de 0° a 180°.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+def mover_servo(pin, angulo):
+    pulso = int(25 + (angulo / 180.0) * 100)
+    pin.write_analog(pulso)
+
+pin0.set_analog_period(20)
+while True:
+    if button_a.is_pressed():
+        mover_servo(pin0, 0)
+        display.show(Image.ARROW_W)
+    elif button_b.is_pressed():
+        mover_servo(pin0, 180)
+        display.show(Image.ARROW_E)
+    else:
+        mover_servo(pin0, 90)
+        display.show(Image.TARGET)
+    sleep(100)
+\`\`\`
+
+### Lección 12: Proyecto Final: Alarma Antirrobo Inteligente
+- **Concepto**: Ecolocalización con transductor ultrasónico HC-SR04 a 40 kHz, cálculo de distancia según la velocidad del sonido (343 m/s) y sistema autónomo de seguridad con sirena de emergencia.
+- **MicroPython**:
+\`\`\`python
+from microbit import *
+import music
+DISTANCIA_ALARMA = 20 # cm
+print("Sistema de alarma armado y vigilando...")
+display.show(Image.YES)
+while True:
+    distancia = 15 # Simulada desde el radar
+    if distancia < DISTANCIA_ALARMA:
+        print("¡INTRUSO DETECTADO! A:", distancia, "cm")
+        display.show(Image.NO)
+        music.pitch(880, 150)
+        music.pitch(587, 150)
+    else:
+        display.show(Image.HAPPY)
+        sleep(200)
+\`\`\`

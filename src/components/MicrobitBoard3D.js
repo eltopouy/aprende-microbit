@@ -51,17 +51,32 @@ export class MicrobitBoard3D {
     this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
     this.camera.position.set(0, 0, 160);
 
-    // 3. Renderer
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance'
-    });
-    this.renderer.setSize(width, height);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // 3. Renderer con detección robusta de WebGL
+    try {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: this.canvas,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      });
+      this.renderer.setSize(width, height);
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    } catch (err) {
+      console.warn('WebGL no está disponible en este dispositivo:', err);
+      this.container.classList.add('no-webgl');
+      const fallback = document.createElement('div');
+      fallback.className = 'stage-webgl-fallback';
+      fallback.innerHTML = `
+        <div style="background: rgba(255,255,255,0.95); border: 2px solid #e3d5be; border-radius: 12px; padding: 24px; max-width: 480px; margin: 60px auto; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
+          <h3 style="color: #e63946; font-size: 18px; margin-bottom: 8px;">Vista 3D no acelerada</h3>
+          <p style="color: #4b5563; font-size: 13px; line-height: 1.5;">Tu navegador no tiene activada la aceleración por hardware WebGL. Aún así, <strong>todas las lecciones, el código y los controles interactivos funcionan al 100%</strong>.</p>
+        </div>
+      `;
+      this.container.appendChild(fallback);
+      return;
+    }
 
     // 4. Orbit Controls
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -556,6 +571,14 @@ export class MicrobitBoard3D {
     if (intersects.length > 0) {
       const part = intersects[0].object.userData;
       if (part && part.partId) {
+        // Disparar interacciones físicas directas en 3D
+        if (part.partId === 'boton-a' && this.options.onButtonPress) {
+          this.options.onButtonPress('A');
+        } else if (part.partId === 'boton-b' && this.options.onButtonPress) {
+          this.options.onButtonPress('B');
+        } else if (part.partId === 'logo-touch' && this.options.onLogoTouch) {
+          this.options.onLogoTouch();
+        }
         this.selectPart(part.partId);
       }
     }
@@ -719,8 +742,19 @@ export class MicrobitBoard3D {
   animate() {
     this.animationFrameId = requestAnimationFrame(() => this.animate());
 
-    this.controls.update();
-    this.renderer.render(this.scene, this.camera);
+    if (this.controls) {
+      this.controls.update();
+
+      // Notificar ángulo de cámara a la brújula HUD
+      if (this.options.onCameraAngle) {
+        const azimuth = this.controls.getAzimuthalAngle();
+        this.options.onCameraAngle(azimuth);
+      }
+    }
+
+    if (this.renderer && this.scene && this.camera) {
+      this.renderer.render(this.scene, this.camera);
+    }
 
     // Notificar al controlador principal para actualizar líneas líderes SVG
     const screenPositions = this.getScreenPositions();
@@ -732,6 +766,7 @@ export class MicrobitBoard3D {
       cancelAnimationFrame(this.animationFrameId);
     }
     window.removeEventListener('resize', this.onResize);
-    this.renderer.dispose();
+    if (this.controls) this.controls.dispose();
+    if (this.renderer) this.renderer.dispose();
   }
 }

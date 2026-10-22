@@ -3,22 +3,182 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Aprende Micro:bit — Lecciones Interactivas 3D en Español</title>
-  <meta name="description" content="Aprende programación y robótica con BBC micro:bit v2 en 3D interactivo: matriz de 25 LEDs, botones, sensores de luz, temperatura, acelerómetro, servomotores y ultrasonido. 12 lecciones en español para estudiantes." />
-  
+  <title>Aprende Micro:bit 3D — Lecciones Interactivas en Español</title>
+  <meta name="description" content="Plataforma educativa interactiva en 3D para aprender programación con BBC micro:bit v2 en español. 12 lecciones con MicroPython y MakeCode, simulador de matriz 5x5, botones, acelerómetro, sonidos y sensores." />
+  <meta name="author" content="Servicio TI Uruguay" />
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+  <meta name="theme-color" content="#f6eddd" />
+  <meta name="color-scheme" content="light" />
+  <meta name="application-name" content="Aprende Micro:bit 3D" />
+  <meta name="apple-mobile-web-app-title" content="Aprende Micro:bit" />
+
+  <!-- Canonical & Alternate URLs -->
+  <link rel="canonical" href="https://microbit.servicioti.com.uy/" />
+  <link rel="alternate" hreflang="es" href="https://microbit.servicioti.com.uy/" />
+  <link rel="alternate" hreflang="x-default" href="https://microbit.servicioti.com.uy/" />
+
   <!-- Open Graph / Redes Sociales -->
   <meta property="og:type" content="website" />
-  <meta property="og:title" content="Aprende Micro:bit — Lecciones Interactivas 3D en Español" />
-  <meta property="og:description" content="Simulador interactivo en 3D de BBC micro:bit v2 con 12 lecciones guiadas en MicroPython y MakeCode para estudiantes." />
-  <meta property="og:url" content="https://www.servicioti.com.uy/" />
+  <meta property="og:site_name" content="Aprende Micro:bit 3D" />
+  <meta property="og:locale" content="es_UY" />
+  <meta property="og:title" content="Aprende Micro:bit 3D — Lecciones Interactivas para Estudiantes" />
+  <meta property="og:description" content="Simulador 3D interactivo de BBC micro:bit v2 con 12 lecciones prácticas en español. Programa con MicroPython y MakeCode." />
+  <meta property="og:url" content="https://microbit.servicioti.com.uy/" />
+  <meta property="og:image" content="https://microbit.servicioti.com.uy/og-image.svg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Placa BBC micro:bit v2 interactiva en 3D con matriz LED y sensores" />
 
-  <!-- Favicon e Iconos -->
+  <!-- Twitter Cards -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Aprende Micro:bit 3D — Simulador Educativo en Español" />
+  <meta name="twitter:description" content="Plataforma interactiva 3D con 12 lecciones de programación para BBC micro:bit v2." />
+  <meta name="twitter:image" content="https://microbit.servicioti.com.uy/og-image.svg" />
+
+  <!-- Favicon y PWA Manifest -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2311141a'/><circle cx='30' cy='40' r='12' fill='%23f5b731'/><circle cx='70' cy='40' r='12' fill='%23f5b731'/><rect x='25' y='65' width='50' height='12' rx='6' fill='%23e63946'/></svg>" />
+  <link rel="manifest" href="./site.webmanifest" />
+
+  <!-- Datos Estructurados Schema.org para Google y Motores de IA (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": ["WebApplication", "LearningResource", "Course"],
+    "name": "Aprende Micro:bit 3D",
+    "alternateName": "Simulador Interactivo BBC micro:bit v2 en Español",
+    "url": "https://microbit.servicioti.com.uy/",
+    "description": "Plataforma educativa interactiva en 3D para aprender programación y robótica con BBC micro:bit v2 en español. 12 lecciones con MicroPython y MakeCode.",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Cualquier navegador web con soporte WebGL o HTML5 estándar",
+    "inLanguage": "es",
+    "isAccessibleForFree": true,
+    "educationalLevel": "Principiante a Intermedio (Primaria, Secundaria, UTU, Ceibal)",
+    "learningResourceType": "Simulador interactivo y curso guiado",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "UYU"
+    },
+    "provider": {
+      "@type": "Organization",
+      "name": "Servicio TI Uruguay",
+      "url": "https://www.servicioti.com.uy/"
+    },
+    "teaches": [
+      "Conoce la placa micro:bit v2",
+      "Matriz LED 5x5 y emoticonos",
+      "Botones pulsadores digitales A y B",
+      "Logo táctil capacitivo",
+      "Termómetro digital y alertas de temperatura",
+      "Sensor de luz ambiental fotovoltaico",
+      "Brújula magnética 3D y rumbos cardinales",
+      "Acelerómetro y detección de agitación (shake)",
+      "Altavoz y sintetizador musical de 8 bits",
+      "Pines analógicos ADC y potenciómetro",
+      "Control de servomotores SG90 vía PWM",
+      "Proyecto final de alarma antirrobo con sensor ultrasónico HC-SR04"
+    ],
+    "about": [
+      "BBC micro:bit",
+      "MicroPython",
+      "Microsoft MakeCode",
+      "Robótica Educativa",
+      "Plan Ceibal",
+      "STEM",
+      "Electrónica"
+    ],
+    "hasPart": [
+      {
+        "@type": "Course",
+        "name": "Lección 1: Conoce la micro:bit v2",
+        "description": "Anatomía de la placa física, procesador nRF52833 de 64 MHz, matriz de 25 LEDs y primer mensaje de bienvenida."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 2: Matriz LED 5x5 y Emoticonos",
+        "description": "Animación de corazón palpitante con Image.HEART y control de brillo independiente de 0 a 9 por píxel."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 3: Botones A y B: Tu Primer Mando",
+        "description": "Entradas digitales con resistencia pull-up, detección is_pressed() y contador interactivo."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 4: Logo Táctil Capacitivo",
+        "description": "Uso del sensor capacitivo bañado en oro de micro:bit v2 con pin_logo.is_touched()."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 5: Termómetro Digital y Alertas",
+        "description": "Monitoreo térmico del silicio nRF52 en grados Celsius y alarmas de temperatura."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 6: Sensor de Luz Oculto",
+        "description": "Detección fotovoltaica inversa en los diodos LED y encendido automático de farola nocturna."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 7: Brújula Digital y Orientación",
+        "description": "Magnetómetro triaxial, cálculo de rumbo de 0 a 360 grados y flechas direccionales."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 8: Acelerómetro y Dado Mágico",
+        "description": "Detección inercial en 3 ejes, detección del gesto shake y generación de números aleatorios."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 9: Melodías y Sintetizador de Sonido",
+        "description": "Altavoz trasero v2, generación de ondas con Web Audio API y reproducción de partituras."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 10: Entradas Analógicas y Potenciómetro",
+        "description": "Lectura ADC de 10 bits en Pin P0 (0 a 1023) y visualización en barra gráfica de LEDs."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 11: Control de Servomotor 9g",
+        "description": "Generación de pulsos PWM a 50 Hz para posicionar el brazo de un servo entre 0° y 180°."
+      },
+      {
+        "@type": "Course",
+        "name": "Lección 12: Proyecto Final: Alarma Antirrobo Inteligente",
+        "description": "Integración de sensor ultrasónico HC-SR04, detección de intrusos, sirena acústica y aviso visual STOP."
+      }
+    ]
+  }
+  </script>
 
   <!-- Estilos Principales -->
   <link rel="stylesheet" href="./src/styles/main.css" />
 </head>
 <body>
+  <!-- Contenido no-script accesible para motores de búsqueda, lectores de pantalla e indexación de IA -->
+  <noscript>
+    <div style="padding: 24px; background: #f6eddd; font-family: sans-serif; max-width: 800px; margin: 0 auto;">
+      <h1>Aprende Micro:bit 3D — Curso Interactivo en Español</h1>
+      <p>Este curso interactivo enseña a programar la placa BBC micro:bit v2 con MicroPython y MakeCode. Aunque la experiencia 3D requiere JavaScript activado, a continuación tienes el índice completo del curso:</p>
+      <ol style="line-height: 1.8; margin-top: 16px;">
+        <li><b>1. Conoce la micro:bit v2</b> — Anatomía del microcontrolador nRF52833 de 64 MHz, matriz de 25 LEDs rojos y conector de borde.</li>
+        <li><b>2. Matriz LED 5x5 y Emoticonos</b> — Animación de corazón palpitante y control de brillo de 0 a 9.</li>
+        <li><b>3. Botones A y B: Tu Primer Mando</b> — Entradas digitales, lógica condicional y contador interactivo.</li>
+        <li><b>4. Logo Táctil Capacitivo</b> — El sensor capacitivo en el logotipo dorado de micro:bit v2.</li>
+        <li><b>5. Termómetro Digital y Alertas</b> — Medición térmica interna y umbrales de calor/frío en °C.</li>
+        <li><b>6. Sensor de Luz Oculto</b> — Funcionamiento fotovoltaico inverso en la matriz de LEDs y lámpara nocturna automática.</li>
+        <li><b>7. Brújula Digital y Orientación</b> — Magnetómetro triaxial de 0 a 360 grados y puntos cardinales.</li>
+        <li><b>8. Acelerómetro y Dado Mágico</b> — Detección del gesto 'shake' (agitar) y simulación de dados numéricos.</li>
+        <li><b>9. Sonidos, Melodías y Altavoz</b> — Síntesis de sonido de 8 bits y melodías con el altavoz integrado v2.</li>
+        <li><b>10. Pines Analógicos y Potenciómetro</b> — Lectura continua de tensión de 0 a 1023 en Pin P0 con conversor ADC de 10 bits.</li>
+        <li><b>11. Control de Servomotor 9g</b> — Señales PWM a 50 Hz para posicionamiento angular exacto de 0° a 180°.</li>
+        <li><b>12. Proyecto Final: Alarma Antirrobo Inteligente</b> — Sistema completo con sensor ultrasónico HC-SR04, sirena y matriz 5x5.</li>
+      </ol>
+      <p style="margin-top: 20px;">Para más información y recursos educativos, visita <a href="https://www.servicioti.com.uy">Servicio TI Uruguay</a> y nuestro archivo para modelos de lenguaje en <a href="./llms.txt">llms.txt</a>.</p>
+    </div>
+  </noscript>
+
   <div id="app">
     <!-- ================= 1. BARRA LATERAL (SIDEBAR) ================= -->
     <nav class="sidebar" aria-label="Navegación Principal">
@@ -97,29 +257,35 @@
 
       <!-- Barra de herramientas de cámara 3D -->
       <div class="viewbar" role="toolbar" aria-label="Controles de cámara">
-        <span class="view-hint">WASD / Arrastrar para rotar · Rueda para Zoom</span>
-        <button class="viewbar-btn" id="btn-view-left" title="Girar a la izquierda (Q)">
+        <span class="view-hint">WASD / Arrastrar · Q/E Girar · Rueda Zoom</span>
+        <button class="viewbar-btn" id="btn-view-left" title="Girar a la izquierda (Q)" aria-label="Girar izquierda">
           <svg viewBox="0 0 24 24"><path d="M4.5 10.5A8 8 0 1 1 6 17"/><path d="M4 5v5.8h5.8"/></svg>
         </button>
-        <button class="viewbar-btn" id="btn-view-right" title="Girar a la derecha (E)">
+        <button class="viewbar-btn" id="btn-view-right" title="Girar a la derecha (E)" aria-label="Girar derecha">
           <svg viewBox="0 0 24 24"><path d="M19.5 10.5A8 8 0 1 0 18 17"/><path d="M20 5v5.8h-5.8"/></svg>
         </button>
-        <button class="viewbar-btn" id="btn-view-zoom-out" title="Alejar (-)">
+        <button class="viewbar-btn" id="btn-view-zoom-out" title="Alejar (-)" aria-label="Alejar">
           <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <button class="viewbar-btn" id="btn-view-zoom-in" title="Acercar (+)">
+        <button class="viewbar-btn" id="btn-view-zoom-in" title="Acercar (+)" aria-label="Acercar">
           <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
-        <button class="viewbar-btn" id="btn-view-reset" title="Restablecer vista (R)">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="12 2 15 12 12 22 9 12 12 2" fill="currentColor"/></svg>
+        <button class="viewbar-btn compass" id="btn-view-reset" title="Restablecer vista (R)" aria-label="Restablecer vista y brújula">
+          <svg viewBox="0 0 24 24" class="compass-svg" style="width: 20px; height: 20px;">
+            <circle cx="12" cy="12" r="9" stroke="currentColor" fill="none" stroke-width="1.5"/>
+            <g id="compass-needle" style="transform-origin: 12px 12px; transition: transform 0.08s linear;">
+              <polygon points="12 3 14.5 12 9.5 12 12 3" fill="#e63946"/>
+              <polygon points="12 21 14.5 12 9.5 12 12 21" fill="#64748b"/>
+            </g>
+          </svg>
         </button>
       </div>
 
       <!-- Drawer flotante del Inspector de Componentes -->
-      <div class="inspector-drawer" id="inspector-drawer">
+      <div class="inspector-drawer" id="inspector-drawer" role="dialog" aria-label="Inspector de componentes">
         <div class="inspector-header">
           <span class="inspector-tag" id="insp-category">Microcontrolador</span>
-          <button class="inspector-close" id="insp-close">&times;</button>
+          <button class="inspector-close" id="insp-close" aria-label="Cerrar inspector">&times;</button>
         </div>
         <h3 class="inspector-name" id="insp-name">Nombre de la parte</h3>
         <p class="inspector-desc" id="insp-desc">Descripción técnica de la parte seleccionada.</p>
@@ -128,31 +294,31 @@
     </main>
 
     <!-- ================= 5. PANEL DE INFORMACIÓN DERECHO ================= -->
-    <section class="info-card">
+    <section class="info-card" aria-label="Información de la lección">
       <div class="info-tabs" role="tablist">
-        <button class="tab-btn is-active" data-tab="overview">Resumen</button>
-        <button class="tab-btn" data-tab="pinout">Pines</button>
-        <button class="tab-btn" data-tab="example">Ejemplo</button>
-        <button class="tab-btn" data-tab="specs">Especificaciones</button>
+        <button class="tab-btn is-active" data-tab="overview" role="tab" aria-selected="true">Resumen</button>
+        <button class="tab-btn" data-tab="pinout" role="tab" aria-selected="false">Pines</button>
+        <button class="tab-btn" data-tab="example" role="tab" aria-selected="false">Ejemplo</button>
+        <button class="tab-btn" data-tab="specs" role="tab" aria-selected="false">Especificaciones</button>
       </div>
-      <div class="info-body" id="info-content">
+      <div class="info-body" id="info-content" role="tabpanel">
         <!-- Renderizado dinámico desde lección activa -->
       </div>
     </section>
 
     <!-- ================= 6. PANEL INFERIOR: CÓDIGO + SIMULADOR + CONSOLA ================= -->
-    <section class="code-card">
+    <section class="code-card" aria-label="Editor de código y simulador">
       <!-- Encabezado de código -->
       <header class="code-header">
-        <div class="lang-toggle">
+        <div class="lang-toggle" role="group" aria-label="Seleccionar lenguaje">
           <button class="lang-btn is-active" id="btn-lang-python">MicroPython</button>
           <button class="lang-btn" id="btn-lang-makecode">MakeCode</button>
         </div>
         <div class="code-actions">
-          <button class="btn-ghost" id="btn-copy-code" title="Copiar código al portapapeles">
+          <button class="btn-ghost" id="btn-copy-code" title="Copiar código al portapapeles" aria-label="Copiar código">
             <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
-          <button class="btn-run" id="btn-run" title="Ejecutar simulación (Espacio)">
+          <button class="btn-run" id="btn-run" title="Ejecutar simulación (Espacio)" aria-label="Ejecutar o detener simulación">
             <svg id="run-icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             <span id="run-text">Ejecutar</span>
           </button>
@@ -165,7 +331,7 @@
       </div>
 
       <!-- Panel central de controles de hardware -->
-      <div class="controls-panel">
+      <div class="controls-panel" aria-label="Controles interactivos de la placa">
         <div class="controls-title">
           <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Controles Físicos
@@ -192,24 +358,24 @@
           <span class="console-title">Consola Serie</span>
           <span class="console-status">Detenido</span>
         </div>
-        <button class="btn-ghost console-clear" title="Limpiar salida de consola">
+        <button class="btn-ghost console-clear" title="Limpiar salida de consola" aria-label="Limpiar consola">
           <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
       </div>
 
       <div class="console-body">
-        <div class="console-lines" id="console-lines">
+        <div class="console-lines" id="console-lines" role="log" aria-live="polite">
           <!-- Salidas de print() simuladas -->
         </div>
       </div>
     </section>
 
     <!-- ================= 7. MODAL DE TODAS LAS LECCIONES ================= -->
-    <div class="modal-overlay" id="modal-lessons">
+    <div class="modal-overlay" id="modal-lessons" role="dialog" aria-modal="true" aria-labelledby="modal-lessons-title">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title">Plan de Estudios: 12 Lecciones de micro:bit</h2>
-          <button class="modal-close" id="modal-lessons-close">&times;</button>
+          <h2 class="modal-title" id="modal-lessons-title">Plan de Estudios: 12 Lecciones de micro:bit</h2>
+          <button class="modal-close" id="modal-lessons-close" aria-label="Cerrar modal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="lessons-grid" id="lessons-grid"></div>
@@ -218,11 +384,11 @@
     </div>
 
     <!-- ================= 8. MODAL DE PARTES Y COMPONENTES ================= -->
-    <div class="modal-overlay" id="modal-parts">
+    <div class="modal-overlay" id="modal-parts" role="dialog" aria-modal="true" aria-labelledby="modal-parts-title">
       <div class="modal-card">
         <div class="modal-header">
-          <h2 class="modal-title">Catálogo de Componentes y Sensores</h2>
-          <button class="modal-close" id="modal-parts-close">&times;</button>
+          <h2 class="modal-title" id="modal-parts-title">Catálogo de Componentes y Sensores</h2>
+          <button class="modal-close" id="modal-parts-close" aria-label="Cerrar modal">&times;</button>
         </div>
         <div class="modal-body">
           <div class="lessons-grid" id="parts-grid"></div>
