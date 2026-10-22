@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Aprende Micro:bit — Lecciones Interactivas 3D en Español</title>
+  <meta name="description" content="Aprende programación y robótica con BBC micro:bit v2 en 3D interactivo: matriz de 25 LEDs, botones, sensores de luz, temperatura, acelerómetro, servomotores y ultrasonido. 12 lecciones en español para estudiantes." />
+  
+  <!-- Open Graph / Redes Sociales -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Aprende Micro:bit — Lecciones Interactivas 3D en Español" />
+  <meta property="og:description" content="Simulador interactivo en 3D de BBC micro:bit v2 con 12 lecciones guiadas en MicroPython y MakeCode para estudiantes." />
+  <meta property="og:url" content="https://www.servicioti.com.uy/" />
+
+  <!-- Favicon e Iconos -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2311141a'/><circle cx='30' cy='40' r='12' fill='%23f5b731'/><circle cx='70' cy='40' r='12' fill='%23f5b731'/><rect x='25' y='65' width='50' height='12' rx='6' fill='%23e63946'/></svg>" />
+
+  <!-- Estilos Principales -->
+  <link rel="stylesheet" href="./src/styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- ================= 1. BARRA LATERAL (SIDEBAR) ================= -->
+    <nav class="sidebar" aria-label="Navegación Principal">
+      <ul class="side-nav">
+        <li class="is-active" data-tooltip="Inicio">
+          <a href="#" id="nav-home" aria-label="Inicio">
+            <svg viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <span class="side-label">Inicio</span>
+          </a>
+        </li>
+        <li data-tooltip="Lecciones">
+          <a href="#" id="nav-lessons" aria-label="Lecciones">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            <span class="side-label">Lecciones</span>
+          </a>
+        </li>
+        <li data-tooltip="Componentes">
+          <a href="#" id="nav-parts" aria-label="Componentes">
+            <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            <span class="side-label">Partes</span>
+          </a>
+        </li>
+        <li data-tooltip="Sonido">
+          <a href="#" id="nav-sound" aria-label="Silenciar / Activar Sonido">
+            <svg id="sound-icon-on" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          </a>
+        </li>
+      </ul>
+      <a class="credit-side" href="https://www.servicioti.com.uy" target="_blank" rel="noopener noreferrer" title="Servicio TI Uruguay">
+        <b>ServicioTI</b><br />Uruguay
+      </a>
+    </nav>
+
+    <!-- ================= 2. CABECERA Y MARCA ================= -->
+    <header class="brand">
+      <div class="brand-logo-wrap">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none">
+            <rect x="2" y="5" width="20" height="14" rx="4" fill="#f5b731"/>
+            <circle cx="7" cy="12" r="2.5" fill="#11141a"/>
+            <circle cx="17" cy="12" r="2.5" fill="#11141a"/>
+            <rect x="10.5" y="10" width="3" height="4" rx="1" fill="#e63946"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Aprende Micro:bit</h1>
+          <p>Explora <i>·</i> Comprende <i>·</i> Construye</p>
+        </div>
+        <span class="brand-badge">micro:bit v2</span>
+      </div>
+    </header>
+
+    <!-- ================= 3. BARRA DE ESTADO SUPERIOR DERECHA ================= -->
+    <section class="status">
+      <div class="progress-card">
+        <div class="progress-body">
+          <div class="progress-header">
+            <span>Progreso del Curso</span>
+            <strong id="progress-text">1 / 12</strong>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="progress-fill" style="width: 8.3%;"></div>
+          </div>
+        </div>
+      </div>
+      <a href="https://www.servicioti.com.uy" target="_blank" class="badge-servicioti">
+        <span>🌐 servicioti.com.uy</span>
+      </a>
+    </section>
+
+    <!-- ================= 4. ESCENARIO 3D INTERACTIVO ================= -->
+    <main class="stage" id="stage" tabindex="0">
+      <canvas id="board-canvas" aria-label="Vista 3D interactiva de la micro:bit. Arrastra para rotar, rueda para zoom."></canvas>
+      <svg class="leaders" id="leaders" aria-hidden="true"></svg>
+      <div class="callouts" id="callouts"></div>
+
+      <!-- Barra de herramientas de cámara 3D -->
+      <div class="viewbar" role="toolbar" aria-label="Controles de cámara">
+        <span class="view-hint">WASD / Arrastrar para rotar · Rueda para Zoom</span>
+        <button class="viewbar-btn" id="btn-view-left" title="Girar a la izquierda (Q)">
+          <svg viewBox="0 0 24 24"><path d="M4.5 10.5A8 8 0 1 1 6 17"/><path d="M4 5v5.8h5.8"/></svg>
+        </button>
+        <button class="viewbar-btn" id="btn-view-right" title="Girar a la derecha (E)">
+          <svg viewBox="0 0 24 24"><path d="M19.5 10.5A8 8 0 1 0 18 17"/><path d="M20 5v5.8h-5.8"/></svg>
+        </button>
+        <button class="viewbar-btn" id="btn-view-zoom-out" title="Alejar (-)">
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="viewbar-btn" id="btn-view-zoom-in" title="Acercar (+)">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+        <button class="viewbar-btn" id="btn-view-reset" title="Restablecer vista (R)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="12 2 15 12 12 22 9 12 12 2" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <!-- Drawer flotante del Inspector de Componentes -->
+      <div class="inspector-drawer" id="inspector-drawer">
+        <div class="inspector-header">
+          <span class="inspector-tag" id="insp-category">Microcontrolador</span>
+          <button class="inspector-close" id="insp-close">&times;</button>
+        </div>
+        <h3 class="inspector-name" id="insp-name">Nombre de la parte</h3>
+        <p class="inspector-desc" id="insp-desc">Descripción técnica de la parte seleccionada.</p>
+        <table class="data-table" id="insp-specs"></table>
+      </div>
+    </main>
+
+    <!-- ================= 5. PANEL DE INFORMACIÓN DERECHO ================= -->
+    <section class="info-card">
+      <div class="info-tabs" role="tablist">
+        <button class="tab-btn is-active" data-tab="overview">Resumen</button>
+        <button class="tab-btn" data-tab="pinout">Pines</button>
+        <button class="tab-btn" data-tab="example">Ejemplo</button>
+        <button class="tab-btn" data-tab="specs">Especificaciones</button>
+      </div>
+      <div class="info-body" id="info-content">
+        <!-- Renderizado dinámico desde lección activa -->
+      </div>
+    </section>
+
+    <!-- ================= 6. PANEL INFERIOR: CÓDIGO + SIMULADOR + CONSOLA ================= -->
+    <section class="code-card">
+      <!-- Encabezado de código -->
+      <header class="code-header">
+        <div class="lang-toggle">
+          <button class="lang-btn is-active" id="btn-lang-python">MicroPython</button>
+          <button class="lang-btn" id="btn-lang-makecode">MakeCode</button>
+        </div>
+        <div class="code-actions">
+          <button class="btn-ghost" id="btn-copy-code" title="Copiar código al portapapeles">
+            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="btn-run" id="btn-run" title="Ejecutar simulación (Espacio)">
+            <svg id="run-icon-play" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span id="run-text">Ejecutar</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Editor de código sólo lectura con resaltado -->
+      <div class="code-wrap">
+        <pre class="code-view" id="code-display"><code># Código cargando...</code></pre>
+      </div>
+
+      <!-- Panel central de controles de hardware -->
+      <div class="controls-panel">
+        <div class="controls-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Controles Físicos
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-hardware" id="btn-hw-a">Botón A</button>
+          <button class="btn-hardware" id="btn-hw-b">Botón B</button>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-hardware" id="btn-hw-logo">Tocar Logo Dorado</button>
+          <button class="btn-hardware" id="btn-hw-shake">¡Agitar (Shake)!</button>
+        </div>
+
+        <!-- Controles específicos inyectados según los parámetros de la lección -->
+        <div id="dynamic-params" style="display: flex; flex-direction: column; gap: 10px;"></div>
+      </div>
+
+      <!-- Monitor Serie / Consola -->
+      <div class="console-header">
+        <div class="console-title-wrap">
+          <span class="console-dot"></span>
+          <span class="console-title">Consola Serie</span>
+          <span class="console-status">Detenido</span>
+        </div>
+        <button class="btn-ghost console-clear" title="Limpiar salida de consola">
+          <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>
+
+      <div class="console-body">
+        <div class="console-lines" id="console-lines">
+          <!-- Salidas de print() simuladas -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 7. MODAL DE TODAS LAS LECCIONES ================= -->
+    <div class="modal-overlay" id="modal-lessons">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Plan de Estudios: 12 Lecciones de micro:bit</h2>
+          <button class="modal-close" id="modal-lessons-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="lessons-grid" id="lessons-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= 8. MODAL DE PARTES Y COMPONENTES ================= -->
+    <div class="modal-overlay" id="modal-parts">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2 class="modal-title">Catálogo de Componentes y Sensores</h2>
+          <button class="modal-close" id="modal-parts-close">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="lessons-grid" id="parts-grid"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script principal de la aplicación -->
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

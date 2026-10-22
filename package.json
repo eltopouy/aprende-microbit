@@ -1,0 +1,29 @@
+{
+  "name": "aprende-microbit",
+  "version": "1.0.0",
+  "description": "Plataforma educativa interactiva en 3D para aprender programación con BBC micro:bit v2 en español",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "microbit",
+    "educacion",
+    "simulador",
+    "threejs",
+    "micropython",
+    "stem",
+    "uruguay"
+  ],
+  "author": "Servicio TI Uruguay",
+  "license": "MIT",
+  "dependencies": {
+    "canvas-confetti": "^1.9.4",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.0"
+  }
+}

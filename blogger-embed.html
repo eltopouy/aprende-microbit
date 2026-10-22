@@ -1,0 +1,63 @@
+<!-- 
+  CÓDIGO PARA PEGAR EN BLOGGER (www.servicioti.com.uy)
+  Instrucciones:
+  1. En tu panel de Blogger, ve a "Páginas" (o "Entradas").
+  2. Haz clic en "Nueva página" (por ejemplo: "Aprende Micro:bit - Simulador 3D").
+  3. En la barra superior izquierda del editor, cambia de "Vista de redacción" a "Vista HTML".
+  4. Pega exactamente el siguiente bloque de código y haz clic en "Publicar".
+-->
+
+<div id="microbit-app-wrapper" style="width: 100%; max-width: 1300px; margin: 0 auto; font-family: 'Segoe UI', system-ui, sans-serif;">
+  <!-- Barra Superior con Botón de Pantalla Completa -->
+  <div style="display: flex; justify-content: space-between; align-items: center; background: #171920; color: #ffffff; padding: 12px 20px; border-radius: 12px 12px 0 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <span style="background: #f5b731; color: #11141a; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 4px; text-transform: uppercase;">micro:bit v2</span>
+      <strong style="font-size: 15px; letter-spacing: 0.3px;">Aprende Programación con BBC micro:bit</strong>
+    </div>
+    <div style="display: flex; gap: 8px;">
+      <a href="https://eltopouy.github.io/aprende-microbit/" target="_blank" rel="noopener noreferrer" style="background: rgba(255,255,255,0.1); color: #e2e8f0; text-decoration: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; transition: background 0.2s;">
+        ↗ Abrir en pestaña nueva
+      </a>
+      <button onclick="toggleMicrobitFullscreen()" style="background: #e63946; color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+        ⛶ Pantalla Completa
+      </button>
+    </div>
+  </div>
+
+  <!-- Contenedor del Iframe Responsivo -->
+  <div id="microbit-frame-container" style="position: relative; width: 100%; height: 820px; border: 1px solid #ccbc9f; border-top: none; border-radius: 0 0 12px 12px; overflow: hidden; background: #f6eddd;">
+    <iframe 
+      id="microbit-iframe"
+      src="https://eltopouy.github.io/aprende-microbit/" 
+      title="Aprende Micro:bit 3D - Servicio TI" 
+      style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
+      allow="autoplay; accelerometer; gyroscope; microphone"
+      loading="lazy"
+    ></iframe>
+  </div>
+
+  <!-- Nota al pie pedagógica para estudiantes -->
+  <div style="margin-top: 10px; font-size: 12px; color: #64748b; text-align: center;">
+    💻 Curso interactivo desarrollado para estudiantes de programación y robótica educativa por 
+    <a href="https://www.servicioti.com.uy" target="_blank" style="color: #2563eb; text-decoration: none; font-weight: 600;">Servicio TI Uruguay</a>.
+  </div>
+</div>
+
+<script>
+  function toggleMicrobitFullscreen() {
+    var container = document.getElementById('microbit-frame-container');
+    if (!document.fullscreenElement) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if (container.webkitRequestFullscreen) {
+        container.webkitRequestFullscreen();
+      } else if (container.msRequestFullscreen) {
+        container.msRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
+  }
+</script>
