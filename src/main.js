@@ -466,6 +466,28 @@ class App {
         select.addEventListener('change', (e) => {
           this.sim.setParam(p.key, e.target.value);
         });
+      } else if (p.type === 'toggle' || p.type === 'checkbox') {
+        row.innerHTML = `
+          <label for="param-${p.key}" style="display:flex; align-items:center; justify-content:space-between; width:100%; cursor:pointer;">
+            <span>${p.label}</span>
+            <input id="param-${p.key}" name="${p.key}" type="checkbox" ${p.value ? 'checked' : ''} style="cursor:pointer; width:16px; height:16px; accent-color:#3fae9e;" aria-label="${p.label}" />
+          </label>
+        `;
+
+        const check = row.querySelector('input');
+        check.addEventListener('change', (e) => {
+          this.sim.setParam(p.key, e.target.checked);
+        });
+      } else if (p.type === 'text') {
+        row.innerHTML = `
+          <label for="param-${p.key}">${p.label}</label>
+          <input id="param-${p.key}" name="${p.key}" type="text" value="${p.value}" style="background:#fff; border:1px solid #d8c6ac; padding:4px 8px; border-radius:4px; font-size:11px; width:100%; box-sizing:border-box;" aria-label="${p.label}" />
+        `;
+
+        const textInput = row.querySelector('input');
+        textInput.addEventListener('input', (e) => {
+          this.sim.setParam(p.key, e.target.value);
+        });
       }
 
       this.dynamicParams.appendChild(row);
@@ -520,6 +542,11 @@ class App {
     document.getElementById('insp-name').textContent = data.name;
     document.getElementById('insp-desc').textContent = data.description;
 
+    const svgBox = document.getElementById('insp-svg-box');
+    if (svgBox) {
+      svgBox.innerHTML = data.svg || '';
+    }
+
     const specsTable = document.getElementById('insp-specs');
     specsTable.innerHTML = `
       <tbody>
@@ -533,10 +560,13 @@ class App {
   renderPartsModal() {
     const grid = document.getElementById('parts-grid');
     grid.innerHTML = Object.values(componentsData).map(p => `
-      <div class="lesson-card-item" data-part="${p.id}">
-        <span class="lesson-number" style="color:#b45309;">${p.category}</span>
-        <h4 class="lesson-name">${p.name}</h4>
-        <p class="lesson-desc">${p.shortDesc}</p>
+      <div class="lesson-card-item part-modal-card" data-part="${p.id}">
+        <div class="part-svg-preview">${p.svg || ''}</div>
+        <div class="part-info-wrap">
+          <span class="lesson-number" style="color:#b45309;">${p.category}</span>
+          <h4 class="lesson-name">${p.name}</h4>
+          <p class="lesson-desc">${p.shortDesc}</p>
+        </div>
       </div>
     `).join('');
 
