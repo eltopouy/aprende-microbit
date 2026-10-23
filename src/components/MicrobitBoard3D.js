@@ -16,22 +16,26 @@ export class MicrobitBoard3D {
 
     this.boardGroup = new THREE.Group();
     this.ledMeshes = []; // 5x5 array
+    this.matrixGlow = null;
     this.buttonAMesh = null;
     this.buttonBMesh = null;
     this.logoMesh = null;
+    this.micLedMat = null;
+
+    // Accesorios
     this.servoGroup = null;
     this.servoArm = null;
     this.ultrasonicGroup = null;
     this.potGroup = null;
     this.potKnob = null;
     this.lampGroup = null;
+    this.bulbMat = null;
 
-    // Component anchors in 3D world coordinates
+    // Anclajes 3D para líneas líderes
     this.anchors = {};
     this.clickableParts = [];
-
     this.isHoveredPart = null;
-    this.selectedPart = null;
+
     this.onSelectPart = options.onSelectPart || (() => {});
     this.onUpdateFrame = options.onUpdateFrame || (() => {});
 
@@ -43,15 +47,15 @@ export class MicrobitBoard3D {
     const width = this.container.clientWidth || 800;
     const height = this.container.clientHeight || 600;
 
-    // 1. Scene
+    // 1. Escena
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf6eddd); // Mismo tono cálido de la web de referencia
+    this.scene.background = new THREE.Color(0xf6eddd); // Tono cálido exacto CAD
 
-    // 2. Camera
-    this.camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
-    this.camera.position.set(0, 0, 160);
+    // 2. Cámara: Perspectiva isométrica inclinada estilo laboratorio CAD
+    this.camera = new THREE.PerspectiveCamera(36, width / height, 0.1, 1000);
+    this.camera.position.set(24, 42, 60);
 
-    // 3. Renderer con detección robusta de WebGL
+    // 3. Renderer con sombras suaves y antialiasing de alta calidad
     try {
       this.renderer = new THREE.WebGLRenderer({
         canvas: this.canvas,
@@ -63,108 +67,196 @@ export class MicrobitBoard3D {
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      if (this.renderer.outputColorSpace) {
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+      }
     } catch (err) {
-      console.warn('WebGL no está disponible en este dispositivo:', err);
-      this.container.classList.add('no-webgl');
-      const fallback = document.createElement('div');
-      fallback.className = 'stage-webgl-fallback';
-      fallback.innerHTML = `
-        <div style="background: rgba(255,255,255,0.95); border: 2px solid #e3d5be; border-radius: 12px; padding: 24px; max-width: 480px; margin: 60px auto; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.1);">
-          <h3 style="color: #e63946; font-size: 18px; margin-bottom: 8px;">Vista 3D no acelerada</h3>
-          <p style="color: #4b5563; font-size: 13px; line-height: 1.5;">Tu navegador no tiene activada la aceleración por hardware WebGL. Aún así, <strong>todas las lecciones, el código y los controles interactivos funcionan al 100%</strong>.</p>
-        </div>
-      `;
-      this.container.appendChild(fallback);
+      console.warn('WebGL no disponible:', err);
       return;
     }
 
-    // 4. Orbit Controls
+    // 4. Controles orbitales suaves y fluidos
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.08;
-    this.controls.minDistance = 60;
-    this.controls.maxDistance = 260;
-    this.controls.maxPolarAngle = Math.PI * 0.9;
+    this.controls.minDistance = 30;
+    this.controls.maxDistance = 160;
+    this.controls.maxPolarAngle = Math.PI * 0.85;
     this.controls.minPolarAngle = 0.1;
+    this.controls.target.set(0, 1.5, 0);
 
-    // 5. Lighting
+    // 5. Suelo técnico con cuadrícula milimétrica CAD y sombra de contacto
+    this.buildWorkbenchGrid();
+    this.buildContactShadow();
+
+    // 6. Iluminación técnica de estudio
     this.setupLighting();
 
-    // 6. Build micro:bit v2 3D Model
+    // 7. Construir la BBC micro:bit v2 con alta fidelidad
     this.buildMicrobit();
 
-    // 7. Build Accessories (Servo, Sonar, Pot, Lamp)
+    // 8. Accesorios 3D externos (dentro de boardGroup para rotar coordinados)
     this.buildAccessories();
+
+    // 9. Inclinación isométrica del tablero (la cara frontal mira hacia el usuario)
+    this.boardGroup.rotation.set(-Math.PI / 3.4, 0, -0.06);
+    this.boardGroup.position.set(0, 1.5, 0);
 
     this.scene.add(this.boardGroup);
 
-    // Event listeners
+    // Eventos
     this.setupEvents();
 
-    // Start loop
+    // Loop de render
     this.animate();
   }
 
+  buildWorkbenchGrid() {
+    // Plano de cuadrícula técnica CAD milimétrica con desvanecimiento radial
+    const gridGeo = new THREE.PlaneGeometry(280, 280);
+
+    const gridVertexShader = `
+      varying vec2 vPos;
+      void main() {
+        vec4 wp = modelMatrix * vec4(position, 1.0);
+        vPos = wp.xz;
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }
+    `;
+
+    const gridFragmentShader = `
+      uniform vec3 color;
+      uniform float cell;
+      uniform vec2 center;
+      uniform float inner;
+      uniform float outer;
+      uniform float strength;
+      varying vec2 vPos;
+      void main() {
+        vec2 g = abs(fract(vPos / cell - 0.5) - 0.5) / fwidth(vPos / cell);
+        float line = 1.0 - min(min(g.x, g.y), 1.0);
+        vec2 q = (vPos - center) / vec2(1.25, 1.0);
+        float fade = 1.0 - smoothstep(inner, outer, length(q));
+        float a = line * fade * strength;
+        gl_FragColor = vec4(color, a);
+      }
+    `;
+
+    const gridMat = new THREE.ShaderMaterial({
+      vertexShader: gridVertexShader,
+      fragmentShader: gridFragmentShader,
+      uniforms: {
+        color: { value: new THREE.Color(0xd9c7ae) },
+        cell: { value: 8.0 },
+        center: { value: new THREE.Vector2(0, 0) },
+        inner: { value: 30.0 },
+        outer: { value: 110.0 },
+        strength: { value: 0.85 }
+      },
+      transparent: true,
+      depthWrite: false
+    });
+
+    const gridMesh = new THREE.Mesh(gridGeo, gridMat);
+    gridMesh.rotation.x = -Math.PI / 2;
+    gridMesh.position.y = -14.0;
+    this.scene.add(gridMesh);
+  }
+
+  buildContactShadow() {
+    // Sombra de contacto suave debajo de la micro:bit en el banco de trabajo
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 256;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createRadialGradient(128, 128, 15, 128, 128, 120);
+    grad.addColorStop(0, 'rgba(30, 20, 10, 0.35)');
+    grad.addColorStop(0.4, 'rgba(40, 25, 15, 0.22)');
+    grad.addColorStop(0.7, 'rgba(50, 35, 20, 0.08)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 256, 256);
+
+    const shadowTex = new THREE.CanvasTexture(canvas);
+    const shadowGeo = new THREE.PlaneGeometry(80, 64);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: shadowTex,
+      transparent: true,
+      depthWrite: false
+    });
+
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.rotation.x = -Math.PI / 2;
+    shadowMesh.position.set(0, -13.9, 0);
+    this.scene.add(shadowMesh);
+  }
+
   setupLighting() {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    // Luz ambiental equilibrada
+    const ambientLight = new THREE.AmbientLight(0xfff6ea, 1.4);
     this.scene.add(ambientLight);
 
-    const mainLight = new THREE.DirectionalLight(0xfff7ea, 2.2);
-    mainLight.position.set(60, 90, 120);
-    mainLight.castShadow = true;
-    mainLight.shadow.mapSize.width = 1024;
-    mainLight.shadow.mapSize.height = 1024;
-    mainLight.shadow.bias = -0.0005;
-    this.scene.add(mainLight);
+    // Luz principal directriz que arroja sombras suaves
+    const keyLight = new THREE.DirectionalLight(0xfffdf7, 2.4);
+    keyLight.position.set(50, 95, 75);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.width = 2048;
+    keyLight.shadow.mapSize.height = 2048;
+    keyLight.shadow.bias = -0.0004;
+    this.scene.add(keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0xb0d0ff, 1.0);
-    rimLight.position.set(-80, -60, -90);
+    // Luz de contorno azulada para realzar detalles de pines y chips
+    const rimLight = new THREE.DirectionalLight(0xb4d4ff, 0.9);
+    rimLight.position.set(-60, -40, -70);
     this.scene.add(rimLight);
 
-    const fillLight = new THREE.PointLight(0xffeacc, 0.8, 200);
-    fillLight.position.set(0, -50, 60);
+    // Luz de relleno cálida para la cara inferior
+    const fillLight = new THREE.PointLight(0xffe9cc, 0.8, 220);
+    fillLight.position.set(0, -40, 50);
     this.scene.add(fillLight);
   }
 
   buildMicrobit() {
-    // Proporciones exactas de BBC micro:bit v2: ~52mm ancho x ~42mm alto x 1.6mm PCB
+    // Dimensiones reales de BBC micro:bit v2: ~52 mm ancho x ~42 mm alto x ~1.6 mm espesor
     const pcbWidth = 52;
     const pcbHeight = 42;
     const pcbDepth = 1.6;
 
-    // --- PCB Base con esquinas redondeadas ---
+    // --- 1. Placa PCB con esquinas redondeadas y muescas de borde ---
     const shape = new THREE.Shape();
-    const radius = 4;
+    const r = 4.2;
     const w2 = pcbWidth / 2;
     const h2 = pcbHeight / 2;
 
-    shape.moveTo(-w2 + radius, -h2);
-    shape.lineTo(w2 - radius, -h2);
-    shape.absarc(w2 - radius, -h2 + radius, radius, -Math.PI / 2, 0, false);
-    shape.lineTo(w2, h2 - radius);
-    shape.absarc(w2 - radius, h2 - radius, radius, 0, Math.PI / 2, false);
-    shape.lineTo(-w2 + radius, h2);
-    shape.absarc(-w2 + radius, h2 - radius, radius, Math.PI / 2, Math.PI, false);
-    shape.lineTo(-w2, -h2 + radius);
-    shape.absarc(-w2 + radius, -h2 + radius, radius, Math.PI, Math.PI * 1.5, false);
+    shape.moveTo(-w2 + r, -h2);
+    shape.lineTo(w2 - r, -h2);
+    shape.absarc(w2 - r, -h2 + r, r, -Math.PI / 2, 0, false);
+    shape.lineTo(w2, h2 - r);
+    shape.absarc(w2 - r, h2 - r, r, 0, Math.PI / 2, false);
+    shape.lineTo(-w2 + r, h2);
+    shape.absarc(-w2 + r, h2 - r, r, Math.PI / 2, Math.PI, false);
+    shape.lineTo(-w2, -h2 + r);
+    shape.absarc(-w2 + r, -h2 + r, r, Math.PI, Math.PI * 1.5, false);
 
     const extrudeSettings = {
       depth: pcbDepth,
       bevelEnabled: true,
-      bevelSegments: 3,
+      bevelSegments: 4,
       steps: 1,
-      bevelSize: 0.4,
-      bevelThickness: 0.4
+      bevelSize: 0.35,
+      bevelThickness: 0.35
     };
 
     const pcbGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     pcbGeo.center();
 
-    // Material de PCB negro satinado icónico de micro:bit v2
+    // Material de máscara de soldadura negro mate con tacto satinado
     const pcbMat = new THREE.MeshStandardMaterial({
-      color: 0x181a20,
-      roughness: 0.55,
-      metalness: 0.2
+      color: 0x161920,
+      roughness: 0.45,
+      metalness: 0.25
     });
 
     const pcbMesh = new THREE.Mesh(pcbGeo, pcbMat);
@@ -174,75 +266,159 @@ export class MicrobitBoard3D {
     this.clickableParts.push(pcbMesh);
     this.boardGroup.add(pcbMesh);
 
-    // --- Conector de Borde Dorado (Edge Connector) ---
+    // --- 2. Serigrafía frontal de alta resolución (Silkscreen auténtica) ---
+    this.buildSilkscreenTexture(pcbWidth, pcbHeight, pcbDepth);
+
+    // --- 3. Conector de Borde Dorado ENIG (25 pines con orificios pasantes) ---
     this.buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth);
 
-    // --- Matriz LED 5x5 ---
+    // --- 4. Matriz LED 5x5 con reflectores y brillo emissive ---
     this.buildLedMatrix();
 
-    // --- Botones A y B ---
+    // --- 5. Botones táctiles A y B con capuchón etiquetado ---
     this.buildButtons();
 
-    // --- Logo Dorado Táctil (v2) ---
+    // --- 6. Logo Táctil Capacitivo de Oro (v2) ---
     this.buildLogoTouch();
 
-    // --- Micrófono MEMS con LED rojo de sonido ---
+    // --- 7. Micrófono MEMS frontal con LED de actividad acústica ---
     this.buildMicrophone();
 
-    // --- Componentes Traseros (Procesador, Altavoz, USB, Brújula) ---
+    // --- 8. Componentes Traseros (Procesador Cortex-M4, Altavoz, USB, etc.) ---
     this.buildBackComponents();
 
-    // Registro de anclajes principales para líneas guías SVG
-    this.anchors['part:matrix'] = new THREE.Vector3(0, 4, pcbDepth + 0.8);
-    this.anchors['part:matrix-center'] = new THREE.Vector3(0, 4, pcbDepth + 0.8);
-    this.anchors['part:button-a'] = new THREE.Vector3(-19.5, 3.5, pcbDepth + 1.5);
-    this.anchors['part:button-b'] = new THREE.Vector3(19.5, 3.5, pcbDepth + 1.5);
-    this.anchors['part:logo'] = new THREE.Vector3(0, 15.5, pcbDepth + 0.6);
-    this.anchors['part:edge'] = new THREE.Vector3(0, -18.5, pcbDepth + 0.5);
-    this.anchors['part:pin-0'] = new THREE.Vector3(-21, -18.5, pcbDepth + 0.5);
-    this.anchors['part:speaker'] = new THREE.Vector3(13, 8, -pcbDepth - 1.2);
-    this.anchors['part:processor'] = new THREE.Vector3(0, 3, -pcbDepth - 1.0);
-    this.anchors['part:accel-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 0.8);
-    this.anchors['part:compass-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 0.8);
+    // Registrar anclajes 3D para el sistema de líneas líderes perimetrales
+    this.anchors['part:matrix'] = new THREE.Vector3(0, 3.8, pcbDepth + 1.2);
+    this.anchors['part:matrix-center'] = new THREE.Vector3(0, 3.8, pcbDepth + 1.2);
+    this.anchors['part:button-a'] = new THREE.Vector3(-19.5, 3.5, pcbDepth + 2.0);
+    this.anchors['part:button-b'] = new THREE.Vector3(19.5, 3.5, pcbDepth + 2.0);
+    this.anchors['part:logo'] = new THREE.Vector3(0, 15.5, pcbDepth + 1.0);
+    this.anchors['part:edge'] = new THREE.Vector3(0, -17.5, pcbDepth + 0.8);
+    this.anchors['part:pin-0'] = new THREE.Vector3(-21, -17.5, pcbDepth + 0.8);
+    this.anchors['part:speaker'] = new THREE.Vector3(13, 8, -pcbDepth - 1.5);
+    this.anchors['part:processor'] = new THREE.Vector3(0, 3, -pcbDepth - 1.2);
+    this.anchors['part:accel-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 1.0);
+    this.anchors['part:compass-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 1.0);
+  }
+
+  buildSilkscreenTexture(pcbWidth, pcbHeight, pcbDepth) {
+    // Generar textura 2D nítida con la serigrafía oficial de BBC micro:bit v2
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 828;
+    const ctx = canvas.getContext('2d');
+
+    // Fondo transparente
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. Patrón ondulado de colores superior (Ceibal / BBC micro:bit v2 signature)
+    ctx.lineWidth = 14;
+    ctx.lineCap = 'round';
+
+    // Onda Roja
+    ctx.strokeStyle = '#ef4444';
+    ctx.beginPath();
+    ctx.moveTo(120, 100);
+    ctx.bezierCurveTo(240, 60, 360, 140, 480, 100);
+    ctx.stroke();
+
+    // Onda Amarilla
+    ctx.strokeStyle = '#f59e0b';
+    ctx.beginPath();
+    ctx.moveTo(540, 100);
+    ctx.bezierCurveTo(660, 60, 780, 140, 900, 100);
+    ctx.stroke();
+
+    // 2. Marco blanco alrededor de la matriz LED
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(300, 240, 424, 424);
+
+    // 3. Letras A y B
+    ctx.font = 'bold 54px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('A', 140, 450);
+    ctx.fillText('B', 884, 450);
+
+    // 4. Marca de serigrafía "BBC micro:bit"
+    ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+    ctx.fillText('BBC micro:bit', 512, 185);
+
+    // 5. Etiquetas de Pines del conector de borde inferior
+    ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+    // Pins 0, 1, 2, 3V, GND alineados con las almohadillas de oro
+    ctx.fillText('0', 105, 715);
+    ctx.fillText('1', 305, 715);
+    ctx.fillText('2', 512, 715);
+    ctx.fillText('3V', 720, 715);
+    ctx.fillText('GND', 920, 715);
+
+    // Línea separadora por encima de los pines
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.beginPath();
+    ctx.moveTo(60, 680);
+    ctx.lineTo(964, 680);
+    ctx.stroke();
+
+    const silkTexture = new THREE.CanvasTexture(canvas);
+    silkTexture.anisotropy = 4;
+
+    const silkGeo = new THREE.PlaneGeometry(pcbWidth - 1, pcbHeight - 1);
+    const silkMat = new THREE.MeshBasicMaterial({
+      map: silkTexture,
+      transparent: true,
+      depthWrite: false
+    });
+
+    const silkMesh = new THREE.Mesh(silkGeo, silkMat);
+    silkMesh.position.set(0, 0, pcbDepth / 2 + 0.08);
+    this.boardGroup.add(silkMesh);
   }
 
   buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth) {
+    // Material de oro químico de inmersión (ENIG) de alto brillo metálico
     const goldMat = new THREE.MeshStandardMaterial({
       color: 0xf5b731,
-      metalness: 0.88,
-      roughness: 0.28
+      metalness: 0.96,
+      roughness: 0.18,
+      emissive: 0x221800
     });
 
     const edgeGroup = new THREE.Group();
-    edgeGroup.position.set(0, -pcbHeight / 2 + 3.8, pcbDepth / 2 + 0.1);
+    edgeGroup.position.set(0, -pcbHeight / 2 + 4.2, pcbDepth / 2 + 0.15);
 
-    // Pines grandes con orificios: 0, 1, 2, 3V, GND
+    // 5 Pines Grandes: 0, 1, 2, 3V, GND con orificios metalizados
     const largePadX = [-21, -11, 0, 11, 21];
-    const padLabels = ['P0', 'P1', 'P2', '3V', 'GND'];
+    const padLabels = ['0', '1', '2', '3V', 'GND'];
 
     largePadX.forEach((x, idx) => {
-      // Almohadilla rectangular
-      const padGeo = new THREE.PlaneGeometry(6.2, 7.2);
+      // Almohadilla de oro rectangular
+      const padGeo = new THREE.PlaneGeometry(6.6, 7.8);
       const padMesh = new THREE.Mesh(padGeo, goldMat);
       padMesh.position.set(x, 0, 0.05);
       padMesh.userData = { partId: 'conector-borde', name: `Pin ${padLabels[idx]}` };
       this.clickableParts.push(padMesh);
       edgeGroup.add(padMesh);
 
-      // Orificio central oscuro para simular perforación de pinza
-      const holeGeo = new THREE.CircleGeometry(1.6, 24);
-      const holeMat = new THREE.MeshBasicMaterial({ color: 0x111215 });
+      // Orificio central circular (metalizado de orificio pasante)
+      const holeGeo = new THREE.CircleGeometry(1.65, 24);
+      const holeMat = new THREE.MeshBasicMaterial({ color: 0x0a0c10 });
       const holeMesh = new THREE.Mesh(holeGeo, holeMat);
-      holeMesh.position.set(x, 0.5, 0.08);
+      holeMesh.position.set(x, 0.6, 0.08);
       edgeGroup.add(holeMesh);
     });
 
-    // Pequeñas pistas delgadas entre pines
-    for (let i = -24; i <= 24; i += 2.2) {
+    // 20 Pines intermedios delgados
+    for (let i = -24; i <= 24; i += 2.1) {
       if (largePadX.some(x => Math.abs(x - i) < 3.2)) continue;
-      const stripeGeo = new THREE.PlaneGeometry(0.9, 5.0);
+      const stripeGeo = new THREE.PlaneGeometry(1.0, 5.2);
       const stripeMesh = new THREE.Mesh(stripeGeo, goldMat);
-      stripeMesh.position.set(i, -1.0, 0.04);
+      stripeMesh.position.set(i, -1.0, 0.05);
       edgeGroup.add(stripeMesh);
     }
 
@@ -251,13 +427,17 @@ export class MicrobitBoard3D {
 
   buildLedMatrix() {
     const matrixGroup = new THREE.Group();
-    matrixGroup.position.set(0, 3.8, 1.1);
+    matrixGroup.position.set(0, 3.8, 1.05);
 
-    const ledSpacing = 4.2; // Distancia entre centros de LEDs
+    const ledSpacing = 4.3; // Espaciado milimétrico entre LEDs
     this.ledMeshes = [];
 
-    // Geometría del LED SMD
-    const ledGeo = new THREE.BoxGeometry(1.8, 1.8, 0.8);
+    // Carcasa o reflector negro de cada LED
+    const housingGeo = new THREE.BoxGeometry(2.3, 2.3, 0.4);
+    const housingMat = new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.6 });
+
+    // Lente difusora central de emisión
+    const lensGeo = new THREE.BoxGeometry(1.5, 1.5, 0.6);
 
     for (let y = 0; y < 5; y++) {
       this.ledMeshes[y] = [];
@@ -265,16 +445,21 @@ export class MicrobitBoard3D {
         const posX = (x - 2) * ledSpacing;
         const posY = (2 - y) * ledSpacing;
 
-        // Material por defecto (apagado)
+        // Marco del LED
+        const housing = new THREE.Mesh(housingGeo, housingMat);
+        housing.position.set(posX, posY, 0.1);
+        matrixGroup.add(housing);
+
+        // Lente central emisiva (con tono rubí apagado realista)
         const ledMat = new THREE.MeshStandardMaterial({
-          color: 0x241113,
+          color: 0x220b0d,
           emissive: 0x000000,
-          roughness: 0.4,
+          roughness: 0.35,
           metalness: 0.1
         });
 
-        const ledMesh = new THREE.Mesh(ledGeo, ledMat);
-        ledMesh.position.set(posX, posY, 0);
+        const ledMesh = new THREE.Mesh(lensGeo, ledMat);
+        ledMesh.position.set(posX, posY, 0.35);
         ledMesh.userData = {
           partId: 'matriz-led',
           name: `LED (${x}, ${y})`,
@@ -288,230 +473,266 @@ export class MicrobitBoard3D {
       }
     }
 
+    // Luz puntual ambiental proyectada por la matriz cuando se iluminan LEDs
+    this.matrixGlow = new THREE.PointLight(0xff2b2b, 0, 35);
+    this.matrixGlow.position.set(0, 0, 5.0);
+    matrixGroup.add(this.matrixGlow);
+
     this.boardGroup.add(matrixGroup);
   }
 
   buildButtons() {
+    // Carcasa metálica plateada de pulsador táctil
+    const housingMat = new THREE.MeshStandardMaterial({
+      color: 0xadb5bd,
+      metalness: 0.88,
+      roughness: 0.22
+    });
+
+    // Capuchón táctil negro
     const buttonMat = new THREE.MeshStandardMaterial({
-      color: 0x222429,
-      roughness: 0.35,
+      color: 0x1f232b,
+      roughness: 0.4,
       metalness: 0.3
     });
 
-    const housingMat = new THREE.MeshStandardMaterial({
-      color: 0xa0a3a8,
-      metalness: 0.85,
-      roughness: 0.25
-    });
+    const housingGeo = new THREE.BoxGeometry(6.6, 6.6, 2.4);
 
-    // --- Botón A (Izquierda) ---
-    const housingGeo = new THREE.BoxGeometry(6.4, 6.4, 2.2);
+    // --- Botón A ---
     const housingA = new THREE.Mesh(housingGeo, housingMat);
-    housingA.position.set(-19.5, 3.5, 1.2);
+    housingA.position.set(-19.5, 3.5, 1.25);
+    housingA.castShadow = true;
     this.boardGroup.add(housingA);
 
-    const capGeo = new THREE.CylinderGeometry(2.0, 2.0, 1.8, 28);
+    const capGeo = new THREE.CylinderGeometry(2.1, 2.1, 1.8, 32);
     capGeo.rotateX(Math.PI / 2);
+
     this.buttonAMesh = new THREE.Mesh(capGeo, buttonMat);
-    this.buttonAMesh.position.set(-19.5, 3.5, 2.4);
+    this.buttonAMesh.position.set(-19.5, 3.5, 2.5);
     this.buttonAMesh.userData = { partId: 'boton-a', name: 'Botón Pulsador A' };
     this.clickableParts.push(this.buttonAMesh);
     this.boardGroup.add(this.buttonAMesh);
 
-    // --- Botón B (Derecha) ---
+    // --- Botón B ---
     const housingB = new THREE.Mesh(housingGeo, housingMat);
-    housingB.position.set(19.5, 3.5, 1.2);
+    housingB.position.set(19.5, 3.5, 1.25);
+    housingB.castShadow = true;
     this.boardGroup.add(housingB);
 
     this.buttonBMesh = new THREE.Mesh(capGeo, buttonMat.clone());
-    this.buttonBMesh.position.set(19.5, 3.5, 2.4);
+    this.buttonBMesh.position.set(19.5, 3.5, 2.5);
     this.buttonBMesh.userData = { partId: 'boton-b', name: 'Botón Pulsador B' };
     this.clickableParts.push(this.buttonBMesh);
     this.boardGroup.add(this.buttonBMesh);
   }
 
   buildLogoTouch() {
-    // Logo táctil en forma de cara / logotipo micro:bit en oro
+    // Logotipo icónico de BBC micro:bit v2 bañado en oro
     const logoShape = new THREE.Shape();
-    logoShape.moveTo(-5.5, -2.5);
-    logoShape.lineTo(5.5, -2.5);
-    logoShape.quadraticCurveTo(6.5, 0, 5.5, 2.5);
-    logoShape.lineTo(-5.5, 2.5);
-    logoShape.quadraticCurveTo(-6.5, 0, -5.5, -2.5);
+    logoShape.moveTo(-6.0, -2.8);
+    logoShape.lineTo(6.0, -2.8);
+    logoShape.quadraticCurveTo(7.2, 0, 6.0, 2.8);
+    logoShape.lineTo(-6.0, 2.8);
+    logoShape.quadraticCurveTo(-7.2, 0, -6.0, -2.8);
 
     const logoGeo = new THREE.ShapeGeometry(logoShape);
     const logoMat = new THREE.MeshStandardMaterial({
       color: 0xf5b731,
-      metalness: 0.9,
-      roughness: 0.25,
+      metalness: 0.96,
+      roughness: 0.18,
       emissive: 0x000000
     });
 
     this.logoMesh = new THREE.Mesh(logoGeo, logoMat);
-    this.logoMesh.position.set(0, 15.5, 0.95);
+    this.logoMesh.position.set(0, 15.5, 1.05);
     this.logoMesh.userData = { partId: 'logo-touch', name: 'Logo Táctil Capacitivo' };
     this.clickableParts.push(this.logoMesh);
     this.boardGroup.add(this.logoMesh);
   }
 
   buildMicrophone() {
-    // Micrófono orificio y LED indicador
-    const micHoleGeo = new THREE.CircleGeometry(0.7, 18);
-    const micMat = new THREE.MeshBasicMaterial({ color: 0x080808 });
-    const micHole = new THREE.Mesh(micHoleGeo, micMat);
-    micHole.position.set(12.5, 15.5, 0.92);
-    micHole.userData = { partId: 'microfono', name: 'Micrófono MEMS' };
-    this.clickableParts.push(micHole);
-    this.boardGroup.add(micHole);
+    // Encapsulado MEMS metálico
+    const micBoxGeo = new THREE.BoxGeometry(3.2, 2.4, 1.0);
+    const micMat = new THREE.MeshStandardMaterial({ color: 0xd1d5db, metalness: 0.9, roughness: 0.2 });
+    const micBox = new THREE.Mesh(micBoxGeo, micMat);
+    micBox.position.set(13.0, 15.5, 1.3);
+    micBox.userData = { partId: 'microfono', name: 'Micrófono MEMS' };
+    this.clickableParts.push(micBox);
+    this.boardGroup.add(micBox);
 
-    // Pequeño LED rojo de actividad
-    const ledMicGeo = new THREE.CircleGeometry(0.5, 16);
-    this.micLedMat = new THREE.MeshBasicMaterial({ color: 0x330000 });
+    // Orificio de sonido
+    const holeGeo = new THREE.CircleGeometry(0.5, 16);
+    const holeMat = new THREE.MeshBasicMaterial({ color: 0x050505 });
+    const hole = new THREE.Mesh(holeGeo, holeMat);
+    hole.position.set(12.5, 15.5, 1.82);
+    this.boardGroup.add(hole);
+
+    // LED de actividad acústica (pequeño indicador rojo)
+    const ledMicGeo = new THREE.CircleGeometry(0.4, 16);
+    this.micLedMat = new THREE.MeshBasicMaterial({ color: 0x440808 });
     const micLed = new THREE.Mesh(ledMicGeo, this.micLedMat);
-    micLed.position.set(14.5, 15.5, 0.92);
+    micLed.position.set(14.2, 15.5, 1.82);
     this.boardGroup.add(micLed);
   }
 
   buildBackComponents() {
-    // Procesador Principal nRF52833 en el reverso (Z negativo)
-    const icGeo = new THREE.BoxGeometry(8, 8, 1.2);
     const icMat = new THREE.MeshStandardMaterial({
       color: 0x1f232b,
-      roughness: 0.45,
+      roughness: 0.4,
       metalness: 0.3
     });
 
-    const cpuMesh = new THREE.Mesh(icGeo, icMat);
-    cpuMesh.position.set(0, 3, -1.4);
+    // 1. Procesador Principal ARM Cortex-M4 nRF52833
+    const cpuGeo = new THREE.BoxGeometry(9.0, 9.0, 1.2);
+    const cpuMesh = new THREE.Mesh(cpuGeo, icMat);
+    cpuMesh.position.set(0, 2.5, -1.5);
+    cpuMesh.castShadow = true;
     cpuMesh.userData = { partId: 'procesador', name: 'Microcontrolador nRF52833' };
     this.clickableParts.push(cpuMesh);
     this.boardGroup.add(cpuMesh);
 
-    // Altavoz electromagnético trasero (v2)
-    const speakerGeo = new THREE.CylinderGeometry(5.2, 5.2, 1.8, 32);
+    // 2. Altavoz Electroacústico Posterior (v2)
+    const speakerGeo = new THREE.CylinderGeometry(5.4, 5.4, 1.8, 36);
     speakerGeo.rotateX(Math.PI / 2);
     const speakerMat = new THREE.MeshStandardMaterial({
-      color: 0xd9dde4,
-      metalness: 0.8,
-      roughness: 0.3
+      color: 0xc8cdd5,
+      metalness: 0.82,
+      roughness: 0.28
     });
 
     const speakerMesh = new THREE.Mesh(speakerGeo, speakerMat);
-    speakerMesh.position.set(13, 8, -1.8);
+    speakerMesh.position.set(13.5, 8.5, -1.8);
+    speakerMesh.castShadow = true;
     speakerMesh.userData = { partId: 'altavoz', name: 'Altavoz Posterior v2' };
     this.clickableParts.push(speakerMesh);
     this.boardGroup.add(speakerMesh);
 
-    // Chip Acelerómetro y Brújula MEMS
-    const sensorGeo = new THREE.BoxGeometry(3.5, 3.5, 1.0);
+    // 3. Chip Acelerómetro y Magnetómetro MEMS
+    const sensorGeo = new THREE.BoxGeometry(3.6, 3.6, 1.0);
     const sensorMesh = new THREE.Mesh(sensorGeo, icMat);
-    sensorMesh.position.set(-14, 5, -1.3);
-    sensorMesh.userData = { partId: 'acelerometro', name: 'Sensor LSM303AGR (Movimiento y Brújula)' };
+    sensorMesh.position.set(-14.0, 5.0, -1.4);
+    sensorMesh.userData = { partId: 'acelerometro', name: 'Sensor LSM303 (Inercial y Brújula)' };
     this.clickableParts.push(sensorMesh);
     this.boardGroup.add(sensorMesh);
 
-    // Conector Micro USB
-    const usbGeo = new THREE.BoxGeometry(7.5, 5.5, 3.0);
-    const usbMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.2 });
+    // 4. Conector Micro-USB
+    const usbGeo = new THREE.BoxGeometry(7.8, 5.6, 3.2);
+    const usbMat = new THREE.MeshStandardMaterial({ color: 0xd8dde6, metalness: 0.92, roughness: 0.18 });
     const usbMesh = new THREE.Mesh(usbGeo, usbMat);
-    usbMesh.position.set(0, 20.5, 0.4);
+    usbMesh.position.set(0, 20.8, 0.4);
+    usbMesh.userData = { partId: 'procesador', name: 'Puerto Micro-USB' };
+    this.clickableParts.push(usbMesh);
     this.boardGroup.add(usbMesh);
 
-    // Botón de Reset posterior
-    const rstGeo = new THREE.CylinderGeometry(1.6, 1.6, 1.2, 20);
+    // 5. Conector de batería JST 2-pin
+    const jstGeo = new THREE.BoxGeometry(6.4, 5.2, 5.0);
+    const jstMat = new THREE.MeshStandardMaterial({ color: 0xf3f4f6, roughness: 0.5 });
+    const jstMesh = new THREE.Mesh(jstGeo, jstMat);
+    jstMesh.position.set(15.5, 18.5, -1.8);
+    this.boardGroup.add(jstMesh);
+
+    // 6. Botón de Reset
+    const rstGeo = new THREE.CylinderGeometry(1.6, 1.6, 1.4, 20);
     rstGeo.rotateX(Math.PI / 2);
-    const rstMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+    const rstMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.3 });
     const rstMesh = new THREE.Mesh(rstGeo, rstMat);
-    rstMesh.position.set(-8, 14, -1.5);
+    rstMesh.position.set(-8.5, 14.5, -1.6);
     this.boardGroup.add(rstMesh);
   }
 
   buildAccessories() {
-    // 1. Servomotor SG90 9g
+    // 1. Servomotor Micro 9g (SG90) - Añadido a boardGroup para compartir inclinación
     this.servoGroup = new THREE.Group();
-    this.servoGroup.position.set(42, 6, 0);
+    this.servoGroup.position.set(38, -2, 0);
 
-    const servoBodyGeo = new THREE.BoxGeometry(12, 22, 12);
-    const servoMat = new THREE.MeshStandardMaterial({ color: 0x1e6fd9, roughness: 0.4 });
+    const servoBodyGeo = new THREE.BoxGeometry(12, 23, 12);
+    const servoMat = new THREE.MeshStandardMaterial({ color: 0x1d70b8, roughness: 0.4 });
     const servoBody = new THREE.Mesh(servoBodyGeo, servoMat);
+    servoBody.castShadow = true;
     this.servoGroup.add(servoBody);
 
-    // Brazo del servo (Horn) blanco giratorio
     this.servoArm = new THREE.Group();
-    this.servoArm.position.set(0, 7, 7);
-
-    const hornGeo = new THREE.BoxGeometry(3.5, 16, 1.8);
-    hornGeo.translate(0, 6, 0);
-    const hornMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.5 });
+    this.servoArm.position.set(0, 7.5, 7.2);
+    const hornGeo = new THREE.BoxGeometry(3.6, 18, 1.8);
+    hornGeo.translate(0, 7, 0);
+    const hornMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 });
     const hornMesh = new THREE.Mesh(hornGeo, hornMat);
     this.servoArm.add(hornMesh);
     this.servoGroup.add(this.servoArm);
 
+    // Cables de conexión flexibles hacia los pines de micro:bit
+    this.createJumperWire(this.servoGroup, [0, -10, 0], [-38, -15, 1], 0xd97706); // Señal -> Pin 0
+    this.createJumperWire(this.servoGroup, [2, -10, 0], [-27, -15, 1], 0xdc2626); // 3V -> 3V
+    this.createJumperWire(this.servoGroup, [-2, -10, 0], [-17, -15, 1], 0x475569); // GND -> GND
+
     this.servoGroup.visible = false;
-    this.scene.add(this.servoGroup);
-    this.anchors['part:servo'] = new THREE.Vector3(42, 14, 8);
+    this.boardGroup.add(this.servoGroup);
+    this.anchors['part:servo'] = new THREE.Vector3(38, 6, 8);
 
     // 2. Sensor Ultrasónico HC-SR04
     this.ultrasonicGroup = new THREE.Group();
-    this.ultrasonicGroup.position.set(-45, 10, 0);
+    this.ultrasonicGroup.position.set(-38, 2, 0);
 
-    const sonicPcbGeo = new THREE.BoxGeometry(4, 20, 42);
-    const sonicPcbMat = new THREE.MeshStandardMaterial({ color: 0x1d528f, roughness: 0.5 });
+    const sonicPcbGeo = new THREE.BoxGeometry(4, 22, 44);
+    const sonicPcbMat = new THREE.MeshStandardMaterial({ color: 0x1d5a96, roughness: 0.4 });
     const sonicPcb = new THREE.Mesh(sonicPcbGeo, sonicPcbMat);
     this.ultrasonicGroup.add(sonicPcb);
 
-    // Dos transductores cilíndricos (ojos del sensor)
-    const eyeGeo = new THREE.CylinderGeometry(7, 7, 10, 24);
+    const eyeGeo = new THREE.CylinderGeometry(7.2, 7.2, 11, 28);
     eyeGeo.rotateZ(Math.PI / 2);
-    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xc4c7cc, metalness: 0.8, roughness: 0.25 });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xcfd4dc, metalness: 0.85, roughness: 0.2 });
 
     const eyeLeft = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeLeft.position.set(-5, 0, -11);
+    eyeLeft.position.set(6, 0, -11.5);
     this.ultrasonicGroup.add(eyeLeft);
 
     const eyeRight = new THREE.Mesh(eyeGeo, eyeMat);
-    eyeRight.position.set(-5, 0, 11);
+    eyeRight.position.set(6, 0, 11.5);
     this.ultrasonicGroup.add(eyeRight);
 
+    // Cables hacia pines 1 y 2
+    this.createJumperWire(this.ultrasonicGroup, [0, -10, 0], [17, -19, 1], 0x16a34a); // Pin 1
+    this.createJumperWire(this.ultrasonicGroup, [0, -10, 4], [38, -19, 1], 0x2563eb); // Pin 2
+
     this.ultrasonicGroup.visible = false;
-    this.scene.add(this.ultrasonicGroup);
-    this.anchors['part:ultrasonic'] = new THREE.Vector3(-45, 10, 0);
+    this.boardGroup.add(this.ultrasonicGroup);
+    this.anchors['part:ultrasonic'] = new THREE.Vector3(-38, 6, 8);
 
     // 3. Potenciómetro rotatorio
     this.potGroup = new THREE.Group();
-    this.potGroup.position.set(-42, -10, 0);
+    this.potGroup.position.set(-36, -8, 0);
 
-    const potBaseGeo = new THREE.CylinderGeometry(8, 8, 7, 24);
-    const potBaseMat = new THREE.MeshStandardMaterial({ color: 0x3d7be0, roughness: 0.4 });
+    const potBaseGeo = new THREE.CylinderGeometry(8.5, 8.5, 7, 28);
+    const potBaseMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.4 });
     const potBase = new THREE.Mesh(potBaseGeo, potBaseMat);
+    potBase.rotateX(Math.PI / 2);
     this.potGroup.add(potBase);
 
-    // Perilla giratoria
     this.potKnob = new THREE.Group();
-    const knobGeo = new THREE.CylinderGeometry(7, 7, 8, 24);
-    const knobMat = new THREE.MeshStandardMaterial({ color: 0x1f2228, roughness: 0.3 });
+    const knobGeo = new THREE.CylinderGeometry(7.2, 7.2, 8.5, 28);
+    knobGeo.rotateX(Math.PI / 2);
+    const knobMat = new THREE.MeshStandardMaterial({ color: 0x1e222a, roughness: 0.35 });
     const knobMesh = new THREE.Mesh(knobGeo, knobMat);
     this.potKnob.add(knobMesh);
 
-    // Muesca indicadora blanca
-    const notchGeo = new THREE.BoxGeometry(1.2, 5, 8.2);
-    notchGeo.translate(0, 4, 0);
+    const notchGeo = new THREE.BoxGeometry(1.4, 5.2, 8.8);
+    notchGeo.translate(0, 4.2, 0);
     const notchMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const notch = new THREE.Mesh(notchGeo, notchMat);
     this.potKnob.add(notch);
 
-    this.potKnob.position.set(0, 0, 4);
+    this.potKnob.position.set(0, 0, 4.2);
     this.potGroup.add(this.potKnob);
 
     this.potGroup.visible = false;
-    this.scene.add(this.potGroup);
-    this.anchors['part:pot'] = new THREE.Vector3(-42, -10, 6);
+    this.boardGroup.add(this.potGroup);
+    this.anchors['part:pot'] = new THREE.Vector3(-36, -8, 8);
 
-    // 4. Lámpara de luz ambiental
+    // 4. Lámpara ambiental
     this.lampGroup = new THREE.Group();
-    this.lampGroup.position.set(40, -12, 10);
+    this.lampGroup.position.set(36, 12, 6);
 
-    const bulbGeo = new THREE.SphereGeometry(6, 24, 24);
+    const bulbGeo = new THREE.SphereGeometry(6.5, 24, 24);
     this.bulbMat = new THREE.MeshStandardMaterial({
       color: 0xffec99,
       emissive: 0xffcc00,
@@ -521,13 +742,27 @@ export class MicrobitBoard3D {
     this.lampGroup.add(bulbMesh);
 
     this.lampGroup.visible = false;
-    this.scene.add(this.lampGroup);
-    this.anchors['part:light-source'] = new THREE.Vector3(40, -12, 10);
+    this.boardGroup.add(this.lampGroup);
+    this.anchors['part:light-source'] = new THREE.Vector3(36, 12, 8);
+  }
+
+  createJumperWire(parentGroup, startLocal, endTarget, colorHex) {
+    // Curva 3D suave de cable puente
+    const p0 = new THREE.Vector3(...startLocal);
+    const p3 = new THREE.Vector3(...endTarget);
+    const midY = Math.min(p0.y, p3.y) - 6;
+    const p1 = new THREE.Vector3((p0.x * 2 + p3.x) / 3, midY, p0.z + 4);
+    const p2 = new THREE.Vector3((p0.x + p3.x * 2) / 3, midY, p3.z + 4);
+
+    const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+    const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.45, 8, false);
+    const tubeMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.35 });
+    const wireMesh = new THREE.Mesh(tubeGeo, tubeMat);
+    parentGroup.add(wireMesh);
   }
 
   setupEvents() {
     window.addEventListener('resize', () => this.onResize());
-
     this.canvas.addEventListener('pointermove', (e) => this.onPointerMove(e));
     this.canvas.addEventListener('click', (e) => this.onCanvasClick(e));
   }
@@ -552,8 +787,7 @@ export class MicrobitBoard3D {
 
     if (intersects.length > 0) {
       this.canvas.style.cursor = 'pointer';
-      const part = intersects[0].object.userData;
-      this.isHoveredPart = part;
+      this.isHoveredPart = intersects[0].object.userData;
     } else {
       this.canvas.style.cursor = 'default';
       this.isHoveredPart = null;
@@ -571,13 +805,18 @@ export class MicrobitBoard3D {
     if (intersects.length > 0) {
       const part = intersects[0].object.userData;
       if (part && part.partId) {
-        // Disparar interacciones físicas directas en 3D
         if (part.partId === 'boton-a' && this.options.onButtonPress) {
           this.options.onButtonPress('A');
+          this.pressButton('A', true);
+          setTimeout(() => this.pressButton('A', false), 200);
         } else if (part.partId === 'boton-b' && this.options.onButtonPress) {
           this.options.onButtonPress('B');
+          this.pressButton('B', true);
+          setTimeout(() => this.pressButton('B', false), 200);
         } else if (part.partId === 'logo-touch' && this.options.onLogoTouch) {
           this.options.onLogoTouch();
+          this.touchLogo(true);
+          setTimeout(() => this.touchLogo(false), 250);
         }
         this.selectPart(part.partId);
       }
@@ -585,13 +824,13 @@ export class MicrobitBoard3D {
   }
 
   selectPart(partId) {
-    this.selectedPart = partId;
     this.onSelectPart(partId);
   }
 
-  // Actualiza los 25 píxeles de la matriz LED con intensidades de 0 a 9
   setMatrixPixels(grid) {
     if (!grid || !this.ledMeshes.length) return;
+
+    let litCount = 0;
 
     for (let y = 0; y < 5; y++) {
       for (let x = 0; x < 5; x++) {
@@ -599,41 +838,41 @@ export class MicrobitBoard3D {
         const led = this.ledMeshes[y][x];
 
         if (val > 0) {
-          // Normalizar brillo del 1 al 9
-          const norm = Math.min(1.0, Math.max(0.15, val / 9));
+          litCount++;
+          const norm = Math.min(1.0, Math.max(0.2, val / 9));
           led.material.color.setHex(0xff3b30);
-          led.material.emissive.setHex(0xff1e14);
-          led.material.emissiveIntensity = norm * 2.8;
+          led.material.emissive.setHex(0xff1818);
+          led.material.emissiveIntensity = norm * 3.5;
         } else {
-          led.material.color.setHex(0x241113);
+          led.material.color.setHex(0x220b0d);
           led.material.emissive.setHex(0x000000);
           led.material.emissiveIntensity = 0;
         }
       }
     }
+
+    if (this.matrixGlow) {
+      this.matrixGlow.intensity = Math.min(2.5, litCount * 0.12);
+    }
   }
 
-  // Presionar visualmente los botones físicos A y B
   pressButton(buttonName, isPressed) {
     const mesh = buttonName === 'A' ? this.buttonAMesh : this.buttonBMesh;
     if (!mesh) return;
-    const targetZ = isPressed ? 1.7 : 2.4;
-    mesh.position.z = targetZ;
+    mesh.position.z = isPressed ? 1.7 : 2.5;
   }
 
-  // Tocar el logo capacitivo
   touchLogo(isTouched) {
     if (!this.logoMesh) return;
     if (isTouched) {
       this.logoMesh.material.emissive.setHex(0xffea79);
-      this.logoMesh.material.emissiveIntensity = 1.6;
+      this.logoMesh.material.emissiveIntensity = 2.2;
     } else {
       this.logoMesh.material.emissive.setHex(0x000000);
       this.logoMesh.material.emissiveIntensity = 0;
     }
   }
 
-  // Girar el brazo del servomotor según el ángulo (0 a 180 grados)
   setServoAngle(angleDeg) {
     if (this.servoArm) {
       const rad = THREE.MathUtils.degToRad(angleDeg - 90);
@@ -641,7 +880,6 @@ export class MicrobitBoard3D {
     }
   }
 
-  // Girar la perilla del potenciómetro
   setPotValue(val0to1023) {
     if (this.potKnob) {
       const rad = THREE.MathUtils.degToRad((val0to1023 / 1023) * 270 - 135);
@@ -649,14 +887,12 @@ export class MicrobitBoard3D {
     }
   }
 
-  // Ajustar brillo de lámpara
   setLampIntensity(normVal) {
     if (this.bulbMat) {
-      this.bulbMat.emissiveIntensity = 0.2 + normVal * 1.8;
+      this.bulbMat.emissiveIntensity = 0.2 + normVal * 2.2;
     }
   }
 
-  // Activa o desactiva accesorios según la lección
   setAccessory(accessoryType) {
     if (this.servoGroup) this.servoGroup.visible = (accessoryType === 'servo-motor');
     if (this.ultrasonicGroup) this.ultrasonicGroup.visible = (accessoryType === 'ultrasonic');
@@ -664,7 +900,6 @@ export class MicrobitBoard3D {
     if (this.lampGroup) this.lampGroup.visible = (accessoryType === 'light-source');
   }
 
-  // Proyecta coordenadas 3D a la pantalla 2D para las líneas guía SVG y HUD
   getScreenPositions() {
     const result = {};
     const width = this.canvas.clientWidth;
@@ -672,49 +907,29 @@ export class MicrobitBoard3D {
 
     for (const [key, vector] of Object.entries(this.anchors)) {
       const worldPos = vector.clone();
-      // Aplica transformaciones de la placa
       this.boardGroup.localToWorld(worldPos);
-
-      // Proyecta a espacio de cámara (-1 a +1)
       const projected = worldPos.clone().project(this.camera);
 
-      // Comprobar si está delante de la cámara
       const isVisible = projected.z < 1.0;
-
-      // Convertir a píxeles de pantalla
       const screenX = (projected.x * 0.5 + 0.5) * width;
       const screenY = (-projected.y * 0.5 + 0.5) * height;
 
       result[key] = {
         x: screenX,
         y: screenY,
-        visible: isVisible && screenX >= 0 && screenX <= width && screenY >= 0 && screenY <= height,
-        depth: projected.z
+        visible: isVisible && screenX >= 0 && screenX <= width && screenY >= 0 && screenY <= height
       };
     }
 
     return result;
   }
 
-  // Controles de cámara rápidos (Vistas fijas)
   setView(preset) {
     switch (preset) {
-      case 'front':
-        this.camera.position.set(0, 0, 160);
-        this.controls.target.set(0, 0, 0);
-        break;
-      case 'perspective':
-        this.camera.position.set(40, -50, 140);
-        this.controls.target.set(0, 0, 0);
-        break;
-      case 'back':
-        this.camera.position.set(0, 0, -160);
-        this.controls.target.set(0, 0, 0);
-        break;
       case 'reset':
       default:
-        this.camera.position.set(0, -15, 150);
-        this.controls.target.set(0, 0, 0);
+        this.camera.position.set(24, 42, 60);
+        this.controls.target.set(0, 1.5, 0);
         break;
     }
     this.controls.update();
@@ -744,11 +959,8 @@ export class MicrobitBoard3D {
 
     if (this.controls) {
       this.controls.update();
-
-      // Notificar ángulo de cámara a la brújula HUD
       if (this.options.onCameraAngle) {
-        const azimuth = this.controls.getAzimuthalAngle();
-        this.options.onCameraAngle(azimuth);
+        this.options.onCameraAngle(this.controls.getAzimuthalAngle());
       }
     }
 
@@ -756,7 +968,6 @@ export class MicrobitBoard3D {
       this.renderer.render(this.scene, this.camera);
     }
 
-    // Notificar al controlador principal para actualizar líneas líderes SVG
     const screenPositions = this.getScreenPositions();
     this.onUpdateFrame(screenPositions);
   }

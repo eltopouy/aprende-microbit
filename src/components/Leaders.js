@@ -1,4 +1,4 @@
-// Gestor de líneas líderes SVG y etiquetas dinámicas 3D-a-2D (Callouts)
+// Gestor de líneas líderes SVG y etiquetas perimetrales dinámicas (Callouts)
 export class Leaders {
   constructor(svgElement, tagsContainer, options = {}) {
     this.svg = svgElement;
@@ -9,6 +9,35 @@ export class Leaders {
     this.callouts = [];
     this.tagElements = new Map();
     this.isVisible = true;
+
+    // Cuadrantes perimetrales en los 4 bordes del escenario
+    this.presetSlots = {
+      'part:logo': { xPct: 0.38, yPct: 0.08, side: 'bottom' },
+      'part:matrix': { xPct: 0.06, yPct: 0.16, side: 'right' },
+      'part:matrix-center': { xPct: 0.06, yPct: 0.16, side: 'right' },
+      'part:button-a': { xPct: 0.06, yPct: 0.52, side: 'right' },
+      'part:button-b': { xPct: 0.72, yPct: 0.22, side: 'left' },
+      'part:edge': { xPct: 0.38, yPct: 0.82, side: 'top' },
+      'part:pin-0': { xPct: 0.06, yPct: 0.76, side: 'right' },
+      'part:processor': { xPct: 0.38, yPct: 0.08, side: 'bottom' },
+      'part:speaker': { xPct: 0.72, yPct: 0.48, side: 'left' },
+      'part:accel-chip': { xPct: 0.06, yPct: 0.36, side: 'right' },
+      'part:compass-chip': { xPct: 0.06, yPct: 0.36, side: 'right' },
+      'part:servo': { xPct: 0.72, yPct: 0.52, side: 'left' },
+      'part:ultrasonic': { xPct: 0.06, yPct: 0.40, side: 'right' },
+      'part:pot': { xPct: 0.06, yPct: 0.65, side: 'right' },
+      'part:light-source': { xPct: 0.72, yPct: 0.35, side: 'left' }
+    };
+
+    // Cuadrantes de reserva por si hay anclajes no estándar
+    this.fallbackSlots = [
+      { xPct: 0.06, yPct: 0.18 },
+      { xPct: 0.72, yPct: 0.18 },
+      { xPct: 0.06, yPct: 0.55 },
+      { xPct: 0.72, yPct: 0.55 },
+      { xPct: 0.38, yPct: 0.82 },
+      { xPct: 0.38, yPct: 0.08 }
+    ];
   }
 
   setCallouts(calloutList = []) {
@@ -26,16 +55,32 @@ export class Leaders {
     this.container.innerHTML = '';
     this.tagElements.clear();
 
+    const icons = {
+      'Matriz 5x5': '▦',
+      'Botón A': '🅐',
+      'Botón B': '🅑',
+      'Logo Táctil': '◈',
+      'Conector de Borde': '⊞',
+      'Chip nRF52833': '⎈',
+      'Altavoz': '🔊',
+      'Servomotor': '⚙',
+      'Sensor HC-SR04': '📡',
+      'Potenciómetro': '🎛',
+      'Lámpara': '💡'
+    };
+
     this.callouts.forEach((item, idx) => {
       const tag = document.createElement('div');
       tag.className = 'callout-tag';
       tag.dataset.index = idx;
       tag.dataset.anchor = item.anchor;
 
+      const iconChar = icons[item.title] || '❖';
+
       tag.innerHTML = `
         <div class="callout-card">
           <div class="callout-header">
-            <span class="callout-dot"></span>
+            <span class="callout-icon-box">${iconChar}</span>
             <strong class="callout-title">${item.title}</strong>
           </div>
           <p class="callout-body">${item.body}</p>
@@ -58,10 +103,13 @@ export class Leaders {
       return;
     }
 
-    let svgPaths = '';
-    const containerRect = this.container.getBoundingClientRect();
+    const stageWidth = this.container.clientWidth;
+    const stageHeight = this.container.clientHeight;
+    if (!stageWidth || !stageHeight) return;
 
-    this.callouts.forEach(item => {
+    let svgPaths = '';
+
+    this.callouts.forEach((item, idx) => {
       const pos = screenPositions[item.anchor];
       const tagEl = this.tagElements.get(item.anchor);
       if (!pos || !tagEl) return;
@@ -75,31 +123,41 @@ export class Leaders {
       tagEl.style.opacity = '1';
       tagEl.style.pointerEvents = 'auto';
 
-      // Posicionamiento de la tarjeta HUD
-      const offsetX = item.x || 0;
-      const offsetY = item.y || 0;
-      const tagX = pos.x + offsetX;
-      const tagY = pos.y + offsetY;
+      // Posicionamiento según el anclaje específico
+      const slot = this.presetSlots[item.anchor] || this.fallbackSlots[idx % this.fallbackSlots.length];
+      const tagX = Math.round(stageWidth * slot.xPct);
+      const tagY = Math.round(stageHeight * slot.yPct);
 
       tagEl.style.transform = `translate(${tagX}px, ${tagY}px)`;
 
-      // Punto de partida: Centro del anclaje en 3D
-      const x0 = pos.x;
-      const y0 = pos.y;
+      // Coordenadas de conexión
+      const cardW = 190;
+      const cardH = 68;
 
-      // Punto de llegada: Tarjeta callout
-      const x1 = tagX;
-      const y1 = tagY;
+      const anchorX = pos.x;
+      const anchorY = pos.y;
+      
+      let cardConnX = tagX;
+      let cardConnY = tagY + cardH / 2;
 
-      // Dibujar línea conectora curva o con codo tecnológico
-      const midX = (x0 + x1) / 2;
-      const pathD = `M ${x0} ${y0} Q ${midX} ${y0} ${x1} ${y1}`;
+      if (anchorX > tagX + cardW) {
+        cardConnX = tagX + cardW;
+      } else if (anchorX < tagX) {
+        cardConnX = tagX;
+      } else {
+        cardConnX = tagX + cardW / 2;
+        cardConnY = (anchorY < tagY) ? tagY : tagY + cardH;
+      }
+
+      // Trayectoria de codo técnico (Línea ortogonal limpia)
+      const midX = (anchorX + cardConnX) / 2;
+      const pathD = `M ${anchorX} ${anchorY} Q ${midX} ${anchorY} ${cardConnX} ${cardConnY}`;
 
       svgPaths += `
         <g class="leader-line">
-          <circle cx="${x0}" cy="${y0}" r="3.5" class="leader-dot" />
+          <circle cx="${anchorX}" cy="${anchorY}" r="4" class="leader-dot" />
           <path d="${pathD}" class="leader-path" />
-          <circle cx="${x1}" cy="${y1}" r="2" class="leader-target" />
+          <circle cx="${cardConnX}" cy="${cardConnY}" r="2.5" class="leader-target" />
         </g>
       `;
     });

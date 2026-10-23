@@ -19,22 +19,23 @@ class App {
     this.canvas = document.getElementById('board-canvas');
     this.stage = document.getElementById('stage');
     this.leadersSvg = document.getElementById('leaders');
-    this.calloutsContainer = document.getElementById('callouts');
+    this.tagsContainer = document.getElementById('tags');
     this.infoContent = document.getElementById('info-content');
     this.codeDisplay = document.getElementById('code-display');
     this.progressText = document.getElementById('progress-text');
     this.progressFill = document.getElementById('progress-fill');
     this.dynamicParams = document.getElementById('dynamic-params');
     this.runBtn = document.getElementById('btn-run');
-    this.runText = document.getElementById('run-text');
     this.runIcon = document.getElementById('run-icon-play');
     this.copyBtn = document.getElementById('btn-copy-code');
     this.inspectorDrawer = document.getElementById('inspector-drawer');
+    this.lessonList = document.getElementById('lesson-list');
 
-    // Inicializar subsistemas
+    // Subsistemas
     this.audio = new AudioEngine();
-    this.serial = new SerialMonitor(document.querySelector('.console-header').parentElement);
-    this.leaders = new Leaders(this.leadersSvg, this.calloutsContainer, {
+    this.serial = new SerialMonitor(document.getElementById('console'));
+    
+    this.leaders = new Leaders(this.leadersSvg, this.tagsContainer, {
       onSelectPart: (partId) => this.showInspector(partId)
     });
 
@@ -69,6 +70,8 @@ class App {
 
   init() {
     this.setupEventListeners();
+    this.startClock();
+    this.renderLessonsCarousel();
 
     // Comprobar si hay hash en la URL (#leccion-1 a #leccion-12)
     const hashMatch = window.location.hash.match(/#leccion-(\d+)/);
@@ -82,7 +85,6 @@ class App {
     this.loadLesson(this.currentLessonIdx);
     this.updateProgressUI();
 
-    // Escuchar cambios de hash manuales
     window.addEventListener('hashchange', () => {
       const match = window.location.hash.match(/#leccion-(\d+)/);
       if (match) {
@@ -94,12 +96,35 @@ class App {
     });
   }
 
+  startClock() {
+    const dateEl = document.getElementById('clock-date');
+    const timeEl = document.getElementById('clock-time');
+
+    const updateTime = () => {
+      const now = new Date();
+      const months = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+      if (dateEl) {
+        dateEl.textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+      }
+      if (timeEl) {
+        timeEl.textContent = now.toTimeString().split(' ')[0];
+      }
+    };
+
+    updateTime();
+    setInterval(updateTime, 1000);
+  }
+
   setupEventListeners() {
     // 1. Selector de pestañas del panel de información
-    document.querySelectorAll('.info-tabs .tab-btn').forEach(btn => {
+    document.querySelectorAll('.info-card .tabs button').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.info-tabs .tab-btn').forEach(b => b.classList.remove('is-active'));
+        document.querySelectorAll('.info-card .tabs button').forEach(b => {
+          b.classList.remove('is-active');
+          b.setAttribute('aria-selected', 'false');
+        });
         btn.classList.add('is-active');
+        btn.setAttribute('aria-selected', 'true');
         this.currentTab = btn.dataset.tab;
         this.renderTabContent();
       });
@@ -136,7 +161,7 @@ class App {
     document.getElementById('btn-view-zoom-out').addEventListener('click', () => this.board.zoom('out', 0.85));
     document.getElementById('btn-view-reset').addEventListener('click', () => this.board.setView('reset'));
 
-    // 6. Controles interactivos de hardware
+    // 6. Controles físicos interactivos
     const btnA = document.getElementById('btn-hw-a');
     const btnB = document.getElementById('btn-hw-b');
     const btnLogo = document.getElementById('btn-hw-logo');
@@ -156,20 +181,15 @@ class App {
 
     btnShake.addEventListener('click', () => this.sim.triggerShake());
 
-    // 7. Modales de navegación (Lecciones y Partes)
-    document.getElementById('nav-lessons').addEventListener('click', (e) => {
-      e.preventDefault();
-      this.openModal('modal-lessons');
-    });
-    document.getElementById('modal-lessons-close').addEventListener('click', () => this.closeModal('modal-lessons'));
-
+    // 7. Modales y Sonido
     document.getElementById('nav-parts').addEventListener('click', (e) => {
       e.preventDefault();
-      this.openModal('modal-parts');
+      document.getElementById('modal-parts').classList.add('is-open');
     });
-    document.getElementById('modal-parts-close').addEventListener('click', () => this.closeModal('modal-parts'));
+    document.getElementById('modal-parts-close').addEventListener('click', () => {
+      document.getElementById('modal-parts').classList.remove('is-open');
+    });
 
-    // Sonido mute / unmute
     const soundBtn = document.getElementById('nav-sound');
     soundBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -178,7 +198,6 @@ class App {
       soundBtn.style.opacity = this.soundEnabled ? '1' : '0.4';
     });
 
-    // Inspector close
     document.getElementById('insp-close').addEventListener('click', () => {
       this.inspectorDrawer.classList.remove('is-visible');
     });
@@ -208,9 +227,44 @@ class App {
       }
     });
 
-    // Renderizar contenidos de los modales
-    this.renderLessonsModal();
+    const wrap = document.querySelector('.lessons-wrap');
+    if (wrap) {
+      wrap.addEventListener('wheel', (e) => {
+        if (e.deltaY !== 0) {
+          e.preventDefault();
+          wrap.scrollLeft += e.deltaY * 1.5;
+        }
+      }, { passive: false });
+    }
+
     this.renderPartsModal();
+  }
+
+  renderLessonsCarousel() {
+    this.lessonList.innerHTML = lessons.map((l, i) => `
+      <li class="lesson-item ${i === this.currentLessonIdx ? 'is-active' : ''}" data-index="${i}">
+        <span class="lesson-thumb">${l.number}</span>
+        <div class="lesson-meta">
+          <span class="lesson-num">Lección ${l.number}</span>
+          <span class="lesson-title">${l.title}</span>
+        </div>
+        ${this.completedLessons.has(l.id) ? '<span class="lesson-check">✓</span>' : ''}
+      </li>
+    `).join('');
+
+    this.lessonList.querySelectorAll('.lesson-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const idx = Number(item.dataset.index);
+        this.loadLesson(idx);
+      });
+    });
+
+    const activeEl = this.lessonList.querySelector(`.lesson-item[data-index="${this.currentLessonIdx}"]`);
+    if (activeEl) {
+      setTimeout(() => {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }, 50);
+    }
   }
 
   loadLesson(idx, updateHash = true) {
@@ -229,8 +283,9 @@ class App {
 
     // Actualizar progreso
     this.updateProgressUI();
+    this.renderLessonsCarousel();
 
-    // Actualizar Título y Hash para SEO y enlaces directos
+    // Actualizar Título y Hash
     document.title = `${lesson.title} — Aprende Micro:bit 3D`;
     if (updateHash) {
       window.history.replaceState(null, '', `#leccion-${idx + 1}`);
@@ -244,8 +299,7 @@ class App {
     switch (this.currentTab) {
       case 'overview':
         html = `
-          <span class="info-lesson-badge">LECCIÓN ${lesson.number} DE ${lessons.length}</span>
-          <h2 class="info-title">${lesson.title}</h2>
+          <h3>${lesson.title}</h3>
           <p class="info-lede">${lesson.lede}</p>
           <div class="info-features">
             ${lesson.features.map(f => `
@@ -255,22 +309,19 @@ class App {
               </div>
             `).join('')}
           </div>
-          <div style="margin-top: 20px; display: flex; gap: 10px;">
-            <button class="btn-hardware" style="flex: 1; background: #e63946; border: none;" id="btn-next-lesson">
-              ${this.currentLessonIdx < lessons.length - 1 ? 'Siguiente Lección →' : '¡Completar Curso! 🎓'}
-            </button>
-          </div>
+          <button class="btn-hw" style="width: 100%; margin-top: 14px; background: #3fae9e; color: #fff; border: none; padding: 8px;" id="btn-next-lesson">
+            ${this.currentLessonIdx < lessons.length - 1 ? 'Siguiente Lección →' : '¡Completar Curso! 🎓'}
+          </button>
         `;
         break;
 
       case 'pinout':
         html = `
-          <h3 class="info-title">Conexiones y Pines</h3>
-          <p class="info-lede">Mapa de pines y señales involucradas en esta práctica.</p>
+          <h3 style="font-size: 18px;">Pines y Conexiones</h3>
           <table class="data-table">
             <thead>
               <tr>
-                <th>Pin / Terminal</th>
+                <th>Pin</th>
                 <th>Función</th>
                 <th>Descripción</th>
               </tr>
@@ -290,13 +341,11 @@ class App {
 
       case 'example':
         html = `
-          <h3 class="info-title">Paso a Paso</h3>
-          <p class="info-lede">Comprende cómo funciona el programa línea por línea:</p>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
+          <h3 style="font-size: 18px;">Paso a Paso</h3>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
             ${lesson.example.map((ex, i) => `
-              <div style="background: var(--bg-card-subtle); border: 1px solid var(--border-cad); padding: 10px 14px; border-radius: 6px;">
-                <strong style="color: #e63946; font-size: 11px;">PASO ${i + 1}</strong>
-                <p style="font-size: 13px; color: #374151; margin-top: 4px;">${ex}</p>
+              <div style="background: #f4eee2; padding: 8px 10px; border-radius: 4px; font-size: 12px;">
+                <strong style="color: #3fae9e;">PASO ${i + 1}:</strong> ${ex}
               </div>
             `).join('')}
           </div>
@@ -305,15 +354,8 @@ class App {
 
       case 'specs':
         html = `
-          <h3 class="info-title">Especificaciones Técnicas</h3>
-          <p class="info-lede">Parámetros eléctricos y de hardware de la BBC micro:bit v2.</p>
+          <h3 style="font-size: 18px;">Especificaciones</h3>
           <table class="data-table">
-            <thead>
-              <tr>
-                <th>Parámetro</th>
-                <th>Valor / Descripción</th>
-              </tr>
-            </thead>
             <tbody>
               ${lesson.specs.map(s => `
                 <tr>
@@ -349,23 +391,45 @@ class App {
   }
 
   highlightSyntax(code, lang) {
-    if (lang === 'python') {
-      return code
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/(#.*$)/gm, '<span class="token-comment">$1</span>')
-        .replace(/\b(from|import|while|True|False|if|elif|else|for|in|def|return|and|or|not)\b/g, '<span class="token-keyword">$1</span>')
-        .replace(/(["'].*?["'])/g, '<span class="token-string">$1</span>')
-        .replace(/\b([0-9]+)\b/g, '<span class="token-number">$1</span>')
-        .replace(/\b(display|sleep|button_a|button_b|pin_logo|temperature|compass|accelerometer|music|pin0|pin1|pin2)\b/g, '<span class="token-function">$1</span>');
-    } else {
-      return code
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-        .replace(/(\/\/.*$)/gm, '<span class="token-comment">$1</span>')
-        .replace(/\b(let|const|function|if|else|return|true|false)\b/g, '<span class="token-keyword">$1</span>')
-        .replace(/(["`].*?["`])/g, '<span class="token-string">$1</span>')
-        .replace(/\b([0-9]+)\b/g, '<span class="token-number">$1</span>')
-        .replace(/\b(basic|input|music|pins|led|sonar)\b/g, '<span class="token-function">$1</span>');
-    }
+    const escapeHtml = (str) =>
+      str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    const lines = code.split('\n');
+    return lines.map((lineText, idx) => {
+      let tokensHtml = '';
+
+      if (lang === 'python') {
+        const pyRegex = /(#.*$)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|(\b(?:from|import|while|True|False|if|elif|else|for|in|def|return|and|or|not|with|as|try|except|pass|break|continue)\b)|(\b(?:display|show|scroll|sleep|clear|set_pixel|get_pixel|button_a|button_b|is_pressed|was_pressed|get_presses|pin_logo|is_touched|temperature|compass|heading|calibrate|accelerometer|get_x|get_y|get_z|get_values|current_gesture|was_gesture|music|play|pitch|stop|reset|pin0|pin1|pin2|pin3|pin8|pin12|pin16|read_analog|write_analog|read_digital|write_digital|Image|random|randint)\b)|(\b\d+(?:\.\d+)?\b)|([a-zA-Z_][a-zA-Z0-9_]*)|(\s+)|([^a-zA-Z0-9_"'#\s]+)/g;
+
+        tokensHtml = lineText.replace(pyRegex, (m, comment, str, kw, fn, num, id, ws, sym) => {
+          if (comment) return `<span class="com">${escapeHtml(comment)}</span>`;
+          if (str) return `<span class="str">${escapeHtml(str)}</span>`;
+          if (kw) return `<span class="kw">${escapeHtml(kw)}</span>`;
+          if (fn) return `<span class="fn">${escapeHtml(fn)}</span>`;
+          if (num) return `<span class="num">${escapeHtml(num)}</span>`;
+          if (id) return escapeHtml(id);
+          if (ws) return ws;
+          if (sym) return escapeHtml(sym);
+          return escapeHtml(m);
+        });
+      } else {
+        const jsRegex = /(\/\/.*$|\/\*[\s\S]*?\*\/)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|(\b(?:let|const|var|function|if|else|return|true|false|for|while|new|class|void)\b)|(\b(?:basic|input|music|pins|led|sonar|radio|game|images|showString|showIcon|showNumber|pause|forever|onButtonPressed|onLogoEvent|onGesture|compassHeading|temperature|analogReadPin|analogWritePin|digitalReadPin|digitalWritePin|playTone|ringTone|rest)\b)|(\b\d+(?:\.\d+)?\b)|([a-zA-Z_][a-zA-Z0-9_]*)|(\s+)|([^a-zA-Z0-9_"'`\/\s]+|\/)/g;
+
+        tokensHtml = lineText.replace(jsRegex, (m, comment, str, kw, fn, num, id, ws, sym) => {
+          if (comment) return `<span class="com">${escapeHtml(comment)}</span>`;
+          if (str) return `<span class="str">${escapeHtml(str)}</span>`;
+          if (kw) return `<span class="kw">${escapeHtml(kw)}</span>`;
+          if (fn) return `<span class="fn">${escapeHtml(fn)}</span>`;
+          if (num) return `<span class="num">${escapeHtml(num)}</span>`;
+          if (id) return escapeHtml(id);
+          if (ws) return ws;
+          if (sym) return escapeHtml(sym);
+          return escapeHtml(m);
+        });
+      }
+
+      return `<span class="line"><span class="ln">${idx + 1}</span>${tokensHtml}</span>`;
+    }).join('\n');
   }
 
   renderDynamicParams(lesson) {
@@ -373,20 +437,17 @@ class App {
     if (!lesson.params || !lesson.params.length) return;
 
     lesson.params.forEach(p => {
-      const group = document.createElement('div');
-      group.className = 'param-group';
+      const row = document.createElement('div');
+      row.className = 'param-row';
 
       if (p.type === 'range') {
-        group.innerHTML = `
-          <div class="param-label-row">
-            <span>${p.label}</span>
-            <span class="param-value-badge" id="val-${p.key}">${p.value} ${p.unit || ''}</span>
-          </div>
-          <input type="range" min="${p.min}" max="${p.max}" step="${p.step || 1}" value="${p.value}" data-key="${p.key}" />
+        row.innerHTML = `
+          <label for="param-${p.key}">${p.label}: <b id="val-${p.key}">${p.value} ${p.unit || ''}</b></label>
+          <input id="param-${p.key}" name="${p.key}" type="range" min="${p.min}" max="${p.max}" step="${p.step || 1}" value="${p.value}" data-key="${p.key}" aria-label="${p.label}" />
         `;
 
-        const slider = group.querySelector('input');
-        const badge = group.querySelector(`#val-${p.key}`);
+        const slider = row.querySelector('input');
+        const badge = row.querySelector(`#val-${p.key}`);
 
         slider.addEventListener('input', (e) => {
           const val = e.target.value;
@@ -394,20 +455,20 @@ class App {
           this.sim.setParam(p.key, val);
         });
       } else if (p.type === 'select') {
-        group.innerHTML = `
-          <div class="param-label-row"><span>${p.label}</span></div>
-          <select style="background:#212631; color:#fff; border:1px solid #333a48; padding:6px 10px; border-radius:6px; font-size:12px; width:100%;">
+        row.innerHTML = `
+          <label for="param-${p.key}">${p.label}</label>
+          <select id="param-${p.key}" name="${p.key}" aria-label="${p.label}" style="background:#fff; border:1px solid #d8c6ac; padding:3px 6px; border-radius:4px; font-size:11px;">
             ${p.options.map(opt => `<option value="${opt.value}" ${opt.value === p.value ? 'selected' : ''}>${opt.label}</option>`).join('')}
           </select>
         `;
 
-        const select = group.querySelector('select');
+        const select = row.querySelector('select');
         select.addEventListener('change', (e) => {
           this.sim.setParam(p.key, e.target.value);
         });
       }
 
-      this.dynamicParams.appendChild(group);
+      this.dynamicParams.appendChild(row);
     });
   }
 
@@ -415,14 +476,12 @@ class App {
     if (this.sim.state === 'running') {
       this.sim.stop();
       this.runBtn.classList.remove('is-running');
-      this.runText.textContent = 'Ejecutar';
-      this.runIcon.innerHTML = '<polygon points="5 3 19 12 5 21 5 3"/>';
+      this.runIcon.innerHTML = '<path d="M7.5 4.8v14.4L19 12z" fill="currentColor"/>';
       this.serial.setStatus('idle');
     } else {
       this.sim.start();
       this.runBtn.classList.add('is-running');
-      this.runText.textContent = 'Detener';
-      this.runIcon.innerHTML = '<rect x="6" y="6" width="12" height="12"/>';
+      this.runIcon.innerHTML = '<rect x="6" y="6" width="12" height="12" fill="currentColor"/>';
       this.serial.setStatus('running');
     }
   }
@@ -438,10 +497,26 @@ class App {
   }
 
   showInspector(partId) {
-    const data = componentsData[partId];
+    const aliasMap = {
+      'matrix': 'matriz-led',
+      'matrix-center': 'matriz-led',
+      'logo': 'logo-touch',
+      'edge': 'conector-borde',
+      'pin-0': 'conector-borde',
+      'processor': 'procesador',
+      'speaker': 'altavoz',
+      'accel-chip': 'acelerometro',
+      'compass-chip': 'brujula',
+      'servo': 'servomotor',
+      'ultrasonic': 'sensor-ultrasonico',
+      'pot': 'potenciometro',
+      'light-source': 'sensor-luz'
+    };
+    const key = aliasMap[partId] || partId;
+    const data = componentsData[key];
     if (!data) return;
 
-    document.getElementById('insp-category').textContent = data.category;
+    document.getElementById('insp-category').textContent = data.category.toUpperCase();
     document.getElementById('insp-name').textContent = data.name;
     document.getElementById('insp-desc').textContent = data.description;
 
@@ -453,25 +528,6 @@ class App {
     `;
 
     this.inspectorDrawer.classList.add('is-visible');
-  }
-
-  renderLessonsModal() {
-    const grid = document.getElementById('lessons-grid');
-    grid.innerHTML = lessons.map((l, i) => `
-      <div class="lesson-card-item ${i === this.currentLessonIdx ? 'is-active' : ''}" data-index="${i}">
-        <span class="lesson-number">Lección ${l.number} ${this.completedLessons.has(l.id) ? '✓' : ''}</span>
-        <h4 class="lesson-name">${l.title}</h4>
-        <p class="lesson-desc">${l.shortDesc}</p>
-      </div>
-    `).join('');
-
-    grid.querySelectorAll('.lesson-card-item').forEach(card => {
-      card.addEventListener('click', () => {
-        const idx = Number(card.dataset.index);
-        this.loadLesson(idx);
-        this.closeModal('modal-lessons');
-      });
-    });
   }
 
   renderPartsModal() {
@@ -487,18 +543,10 @@ class App {
     grid.querySelectorAll('.lesson-card-item').forEach(card => {
       card.addEventListener('click', () => {
         const partId = card.dataset.part;
-        this.closeModal('modal-parts');
+        document.getElementById('modal-parts').classList.remove('is-open');
         this.showInspector(partId);
       });
     });
-  }
-
-  openModal(id) {
-    document.getElementById(id).classList.add('is-open');
-  }
-
-  closeModal(id) {
-    document.getElementById(id).classList.remove('is-open');
   }
 
   markLessonCompleted(idx) {
@@ -507,7 +555,7 @@ class App {
     localStorage.setItem('microbit_completed', JSON.stringify([...this.completedLessons]));
     this.celebrate();
     this.updateProgressUI();
-    this.renderLessonsModal();
+    this.renderLessonsCarousel();
   }
 
   celebrate() {
@@ -524,7 +572,7 @@ class App {
     const total = lessons.length;
     const percent = Math.min(100, Math.round((completedCount / total) * 100));
 
-    this.progressText.textContent = `${completedCount} / ${total}`;
+    this.progressText.textContent = `${completedCount}/${total}`;
     this.progressFill.style.width = `${percent}%`;
   }
 
@@ -541,7 +589,6 @@ class App {
   }
 }
 
-// Inicializar la aplicación al cargar el DOM
 window.addEventListener('DOMContentLoaded', () => {
   window.__microbitApp = new App();
 });
