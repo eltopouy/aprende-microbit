@@ -89,10 +89,10 @@ export class MicrobitBoard3D {
     this.buildWorkbenchGrid();
     this.buildContactShadow();
 
-    // 6. Iluminación técnica de estudio
+    // 6. Iluminación técnica de estudio calibrada para resaltar el oro metálico
     this.setupLighting();
 
-    // 7. Construir la BBC micro:bit v2 con alta fidelidad
+    // 7. Construir la BBC micro:bit v2 con alta fidelidad y orificios pasantes
     this.buildMicrobit();
 
     // 8. Accesorios 3D externos (dentro de boardGroup para rotar coordinados)
@@ -112,7 +112,6 @@ export class MicrobitBoard3D {
   }
 
   buildWorkbenchGrid() {
-    // Plano de cuadrícula técnica CAD milimétrica con desvanecimiento radial
     const gridGeo = new THREE.PlaneGeometry(280, 280);
 
     const gridVertexShader = `
@@ -164,7 +163,6 @@ export class MicrobitBoard3D {
   }
 
   buildContactShadow() {
-    // Sombra de contacto suave debajo de la micro:bit en el banco de trabajo
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 256;
@@ -194,7 +192,7 @@ export class MicrobitBoard3D {
   }
 
   setupLighting() {
-    // Luz ambiental equilibrada
+    // Luz ambiental cálida
     const ambientLight = new THREE.AmbientLight(0xfff6ea, 1.4);
     this.scene.add(ambientLight);
 
@@ -207,7 +205,12 @@ export class MicrobitBoard3D {
     keyLight.shadow.bias = -0.0004;
     this.scene.add(keyLight);
 
-    // Luz de contorno azulada para realzar detalles de pines y chips
+    // Luz dorada frontal inferior: dedicada exclusivamente a iluminar los pines ENIG y orificios
+    const goldRimLight = new THREE.DirectionalLight(0xfff3cc, 2.2);
+    goldRimLight.position.set(0, -30, 50);
+    this.scene.add(goldRimLight);
+
+    // Luz de contorno azulada para realzar detalles de chips y reverso
     const rimLight = new THREE.DirectionalLight(0xb4d4ff, 0.9);
     rimLight.position.set(-60, -40, -70);
     this.scene.add(rimLight);
@@ -219,44 +222,97 @@ export class MicrobitBoard3D {
   }
 
   buildMicrobit() {
-    // Dimensiones reales de BBC micro:bit v2: ~52 mm ancho x ~42 mm alto x ~1.6 mm espesor
-    const pcbWidth = 52;
-    const pcbHeight = 42;
-    const pcbDepth = 1.6;
-
-    // --- 1. Placa PCB con esquinas redondeadas y muescas de borde ---
-    const shape = new THREE.Shape();
-    const r = 4.2;
+    // Dimensiones oficiales BBC micro:bit v2: 51.6 mm x 42.0 mm x 1.4 mm
+    const pcbWidth = 51.6;
+    const pcbHeight = 42.0;
+    const pcbDepth = 1.4;
     const w2 = pcbWidth / 2;
     const h2 = pcbHeight / 2;
+    const r = 4.2;
 
-    shape.moveTo(-w2 + r, -h2);
-    shape.lineTo(w2 - r, -h2);
-    shape.absarc(w2 - r, -h2 + r, r, -Math.PI / 2, 0, false);
-    shape.lineTo(w2, h2 - r);
-    shape.absarc(w2 - r, h2 - r, r, 0, Math.PI / 2, false);
-    shape.lineTo(-w2 + r, h2);
-    shape.absarc(-w2 + r, h2 - r, r, Math.PI / 2, Math.PI, false);
-    shape.lineTo(-w2, -h2 + r);
-    shape.absarc(-w2 + r, -h2 + r, r, Math.PI, Math.PI * 1.5, false);
+    // --- 1. Placa PCB con esquinas redondeadas, muescas laterales y MUESCAS v2 EN EL BORDE INFERIOR ---
+    const shape = new THREE.Shape();
+
+    // Comienza en la esquina superior izquierda
+    shape.moveTo(-w2 + r, h2);
+    shape.lineTo(w2 - r, h2);
+    shape.absarc(w2 - r, h2 - r, r, Math.PI / 2, 0, true);
+
+    // Borde derecho con muesca lateral
+    shape.lineTo(w2, 1.5);
+    shape.lineTo(w2 - 1.0, 0);
+    shape.lineTo(w2, -1.5);
+    shape.lineTo(w2, -h2 + r);
+    shape.absarc(w2 - r, -h2 + r, r, 0, -Math.PI / 2, true);
+
+    // BORDE INFERIOR OFICIAL v2: 5 almohadillas salientes y 4 muescas rebajadas para pinzas cocodrilo
+    // Pad GND: de w2-r a 17.5
+    shape.lineTo(17.5, -h2);
+    // Muesca 4 (entre 3V y GND)
+    shape.lineTo(17.5, -h2 + 2.2);
+    shape.lineTo(14.5, -h2 + 2.2);
+    shape.lineTo(14.5, -h2);
+
+    // Pad 3V: de 14.5 a 7.5
+    shape.lineTo(7.5, -h2);
+    // Muesca 3 (entre Pin 2 y 3V)
+    shape.lineTo(7.5, -h2 + 2.2);
+    shape.lineTo(3.5, -h2 + 2.2);
+    shape.lineTo(3.5, -h2);
+
+    // Pad 2: de 3.5 a -3.5
+    shape.lineTo(-3.5, -h2);
+    // Muesca 2 (entre Pin 1 y Pin 2)
+    shape.lineTo(-3.5, -h2 + 2.2);
+    shape.lineTo(-7.5, -h2 + 2.2);
+    shape.lineTo(-7.5, -h2);
+
+    // Pad 1: de -7.5 a -14.5
+    shape.lineTo(-14.5, -h2);
+    // Muesca 1 (entre Pin 0 y Pin 1)
+    shape.lineTo(-14.5, -h2 + 2.2);
+    shape.lineTo(-17.5, -h2 + 2.2);
+    shape.lineTo(-17.5, -h2);
+
+    // Pad 0: de -17.5 a -w2+r
+    shape.lineTo(-w2 + r, -h2);
+    shape.absarc(-w2 + r, -h2 + r, r, -Math.PI / 2, -Math.PI, true);
+
+    // Borde izquierdo con muesca lateral
+    shape.lineTo(-w2, -1.5);
+    shape.lineTo(-w2 + 1.0, 0);
+    shape.lineTo(-w2, 1.5);
+    shape.lineTo(-w2, h2 - r);
+    shape.absarc(-w2 + r, h2 - r, r, Math.PI, Math.PI / 2, true);
+
+    // --- 5 ORIFICIOS PASANTES REALES TALADRADOS EN LA PCB (Radio 1.85 mm = 3.7 mm diámetro) ---
+    const holeRadius = 1.85;
+    const holeY = -16.0;
+    const padXPositions = [-21.0, -11.0, 0.0, 11.0, 21.0];
+
+    padXPositions.forEach(hx => {
+      const hole = new THREE.Path();
+      hole.absarc(hx, holeY, holeRadius, 0, Math.PI * 2, false);
+      shape.holes.push(hole);
+    });
 
     const extrudeSettings = {
       depth: pcbDepth,
       bevelEnabled: true,
-      bevelSegments: 4,
+      bevelSegments: 3,
       steps: 1,
-      bevelSize: 0.35,
-      bevelThickness: 0.35
+      bevelSize: 0.25,
+      bevelThickness: 0.25
     };
 
     const pcbGeo = new THREE.ExtrudeGeometry(shape, extrudeSettings);
     pcbGeo.center();
 
-    // Material de máscara de soldadura negro mate con tacto satinado
+    // Material de máscara de soldadura negro mate técnico satinado
     const pcbMat = new THREE.MeshStandardMaterial({
-      color: 0x161920,
-      roughness: 0.45,
-      metalness: 0.25
+      color: 0x14171d,
+      roughness: 0.5,
+      metalness: 0.2
     });
 
     const pcbMesh = new THREE.Mesh(pcbGeo, pcbMat);
@@ -266,109 +322,150 @@ export class MicrobitBoard3D {
     this.clickableParts.push(pcbMesh);
     this.boardGroup.add(pcbMesh);
 
-    // --- 2. Serigrafía frontal de alta resolución (Silkscreen auténtica) ---
+    // --- 2. Serigrafía frontal de alta resolución (Silkscreen oficial nítida) ---
     this.buildSilkscreenTexture(pcbWidth, pcbHeight, pcbDepth);
 
-    // --- 3. Conector de Borde Dorado ENIG (25 pines con orificios pasantes) ---
-    this.buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth);
+    // --- 3. Conector de Borde Dorado ENIG con relieve 3D y barriles metalizados ---
+    this.buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth, holeRadius, holeY, padXPositions);
 
     // --- 4. Matriz LED 5x5 con reflectores y brillo emissive ---
     this.buildLedMatrix();
 
-    // --- 5. Botones táctiles A y B con capuchón etiquetado ---
+    // --- 5. Botones táctiles A y B mecánicos con capuchón etiquetado ---
     this.buildButtons();
 
-    // --- 6. Logo Táctil Capacitivo de Oro (v2) ---
+    // --- 6. Logo Táctil Capacitivo de Oro (v2) en relieve 3D ---
     this.buildLogoTouch();
 
     // --- 7. Micrófono MEMS frontal con LED de actividad acústica ---
     this.buildMicrophone();
 
-    // --- 8. Componentes Traseros (Procesador Cortex-M4, Altavoz, USB, etc.) ---
+    // --- 8. Componentes Traseros (Procesador nRF52833, Altavoz v2, USB, etc.) ---
     this.buildBackComponents();
 
-    // Registrar anclajes 3D para el sistema de líneas líderes perimetrales
+    // Anclajes 3D para líneas líderes alineados exactamente con los pines y chips
     this.anchors['part:matrix'] = new THREE.Vector3(0, 3.8, pcbDepth + 1.2);
     this.anchors['part:matrix-center'] = new THREE.Vector3(0, 3.8, pcbDepth + 1.2);
     this.anchors['part:button-a'] = new THREE.Vector3(-19.5, 3.5, pcbDepth + 2.0);
     this.anchors['part:button-b'] = new THREE.Vector3(19.5, 3.5, pcbDepth + 2.0);
-    this.anchors['part:logo'] = new THREE.Vector3(0, 15.5, pcbDepth + 1.0);
-    this.anchors['part:edge'] = new THREE.Vector3(0, -17.5, pcbDepth + 0.8);
-    this.anchors['part:pin-0'] = new THREE.Vector3(-21, -17.5, pcbDepth + 0.8);
-    this.anchors['part:speaker'] = new THREE.Vector3(13, 8, -pcbDepth - 1.5);
-    this.anchors['part:processor'] = new THREE.Vector3(0, 3, -pcbDepth - 1.2);
-    this.anchors['part:accel-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 1.0);
-    this.anchors['part:compass-chip'] = new THREE.Vector3(-14, 5, -pcbDepth - 1.0);
+    this.anchors['part:logo'] = new THREE.Vector3(0, 15.5, pcbDepth + 1.2);
+    this.anchors['part:edge'] = new THREE.Vector3(0, -16.0, pcbDepth + 1.2);
+    this.anchors['part:pin-0'] = new THREE.Vector3(-21.0, -16.0, pcbDepth + 1.2);
+    this.anchors['part:speaker'] = new THREE.Vector3(13.0, 8.0, -pcbDepth - 1.5);
+    this.anchors['part:processor'] = new THREE.Vector3(0, 3.0, -pcbDepth - 1.2);
+    this.anchors['part:accel-chip'] = new THREE.Vector3(-14.0, 5.0, -pcbDepth - 1.0);
+    this.anchors['part:compass-chip'] = new THREE.Vector3(-14.0, 5.0, -pcbDepth - 1.0);
   }
 
   buildSilkscreenTexture(pcbWidth, pcbHeight, pcbDepth) {
-    // Generar textura 2D nítida con la serigrafía oficial de BBC micro:bit v2
+    // Generar textura 2D en ultra alta resolución (2048 x 1664) con la serigrafía oficial de BBC micro:bit v2
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 828;
+    canvas.width = 2048;
+    canvas.height = 1664;
     const ctx = canvas.getContext('2d');
 
-    // Fondo transparente
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. Patrón ondulado de colores superior (Ceibal / BBC micro:bit v2 signature)
-    ctx.lineWidth = 14;
+    // 1. Patrón ondulado de colores superior oficial (Ceibal / BBC micro:bit v2 signature)
+    ctx.lineWidth = 26;
     ctx.lineCap = 'round';
 
-    // Onda Roja
-    ctx.strokeStyle = '#ef4444';
+    // Onda Roja oficial
+    ctx.strokeStyle = '#de1642';
     ctx.beginPath();
-    ctx.moveTo(120, 100);
-    ctx.bezierCurveTo(240, 60, 360, 140, 480, 100);
+    ctx.moveTo(260, 190);
+    ctx.bezierCurveTo(480, 120, 720, 260, 960, 190);
     ctx.stroke();
 
-    // Onda Amarilla
-    ctx.strokeStyle = '#f59e0b';
+    // Onda Amarilla oficial
+    ctx.strokeStyle = '#ffcc00';
     ctx.beginPath();
-    ctx.moveTo(540, 100);
-    ctx.bezierCurveTo(660, 60, 780, 140, 900, 100);
+    ctx.moveTo(1080, 190);
+    ctx.bezierCurveTo(1320, 120, 1560, 260, 1780, 190);
     ctx.stroke();
 
-    // 2. Marco blanco alrededor de la matriz LED
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(300, 240, 424, 424);
+    // 2. Marco blanco técnico alrededor de la matriz LED 5x5
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.88)';
+    ctx.lineWidth = 6;
+    ctx.strokeRect(600, 480, 848, 848);
 
-    // 3. Letras A y B
-    ctx.font = 'bold 54px system-ui, -apple-system, sans-serif';
+    // Retícula fina de referencia entre LEDs
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    for (let i = 1; i < 5; i++) {
+      const p = 600 + i * (848 / 5);
+      ctx.beginPath();
+      ctx.moveTo(p, 480);
+      ctx.lineTo(p, 1328);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(600, p);
+      ctx.lineTo(1448, p);
+      ctx.stroke();
+    }
+
+    // 3. Letras A y B dentro de círculo de serigrafía blanco
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+
+    // Botón A
+    ctx.beginPath();
+    ctx.arc(280, 900, 52, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.font = '900 78px system-ui, -apple-system, sans-serif';
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('A', 140, 450);
-    ctx.fillText('B', 884, 450);
+    ctx.fillText('A', 280, 904);
 
-    // 4. Marca de serigrafía "BBC micro:bit"
-    ctx.font = 'bold 28px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fillText('BBC micro:bit', 512, 185);
-
-    // 5. Etiquetas de Pines del conector de borde inferior
-    ctx.font = 'bold 44px system-ui, -apple-system, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
-    // Pins 0, 1, 2, 3V, GND alineados con las almohadillas de oro
-    ctx.fillText('0', 105, 715);
-    ctx.fillText('1', 305, 715);
-    ctx.fillText('2', 512, 715);
-    ctx.fillText('3V', 720, 715);
-    ctx.fillText('GND', 920, 715);
-
-    // Línea separadora por encima de los pines
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    // Botón B
     ctx.beginPath();
-    ctx.moveTo(60, 680);
-    ctx.lineTo(964, 680);
+    ctx.arc(1768, 900, 52, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.fillText('B', 1768, 904);
+
+    // 4. Marca de serigrafía oficial "BBC micro:bit"
+    ctx.font = 'bold 52px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.fillText('BBC micro:bit', 1024, 370);
+
+    // 5. ETIQUETAS DE PINES GRANDES EN SERIGRAFÍA BLANCA ULTRA-NÍTIDA
+    // Posiciones en coordenadas canvas (X):
+    // Pad 0: 210, Pad 1: 606, Pad 2: 1024, Pad 3V: 1442, Pad GND: 1838
+    ctx.font = '900 82px system-ui, -apple-system, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText('0', 210, 1378);
+    ctx.fillText('1', 606, 1378);
+    ctx.fillText('2', 1024, 1378);
+    ctx.font = '900 72px system-ui, -apple-system, sans-serif';
+    ctx.fillText('3V', 1442, 1380);
+    ctx.font = '900 66px system-ui, -apple-system, sans-serif';
+    ctx.fillText('GND', 1838, 1380);
+
+    // Línea separadora blanca horizontal por encima del conector de borde
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.moveTo(110, 1324);
+    ctx.lineTo(1938, 1324);
+    ctx.stroke();
+
+    // Pequeños marcadores de peine (tick marks) para los pines pequeños
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    const tickX = [350, 390, 430, 470, 740, 780, 820, 860, 900, 1150, 1190, 1230, 1270, 1310, 1580, 1620, 1660, 1700];
+    tickX.forEach(tx => {
+      ctx.beginPath();
+      ctx.moveTo(tx, 1324);
+      ctx.lineTo(tx, 1338);
+      ctx.stroke();
+    });
 
     const silkTexture = new THREE.CanvasTexture(canvas);
     silkTexture.anisotropy = 4;
 
-    const silkGeo = new THREE.PlaneGeometry(pcbWidth - 1, pcbHeight - 1);
+    const silkGeo = new THREE.PlaneGeometry(pcbWidth - 0.4, pcbHeight - 0.4);
     const silkMat = new THREE.MeshBasicMaterial({
       map: silkTexture,
       transparent: true,
@@ -376,51 +473,112 @@ export class MicrobitBoard3D {
     });
 
     const silkMesh = new THREE.Mesh(silkGeo, silkMat);
-    silkMesh.position.set(0, 0, pcbDepth / 2 + 0.08);
+    silkMesh.position.set(0, 0, pcbDepth / 2 + 0.06);
     this.boardGroup.add(silkMesh);
   }
 
-  buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth) {
-    // Material de oro químico de inmersión (ENIG) de alto brillo metálico
+  buildEdgeConnector(pcbWidth, pcbHeight, pcbDepth, holeRadius, holeY, padXPositions) {
+    // Material de oro químico de inmersión (ENIG) de alto brillo reflectante con autoemisión cálida
     const goldMat = new THREE.MeshStandardMaterial({
-      color: 0xf5b731,
-      metalness: 0.96,
-      roughness: 0.18,
-      emissive: 0x221800
+      color: 0xfcc62c,          // Oro amarillo brillante enriquecido
+      metalness: 0.84,          // Fuerte respuesta metálica reflectiva
+      roughness: 0.16,          // Superficie pulida brillante
+      emissive: 0x422a00         // Autoemisión dorada cálida: garantiza que NUNCA se vea oscuro
     });
 
     const edgeGroup = new THREE.Group();
-    edgeGroup.position.set(0, -pcbHeight / 2 + 4.2, pcbDepth / 2 + 0.15);
 
-    // 5 Pines Grandes: 0, 1, 2, 3V, GND con orificios metalizados
-    const largePadX = [-21, -11, 0, 11, 21];
     const padLabels = ['0', '1', '2', '3V', 'GND'];
+    const padW = 6.2;
+    const padH = 9.4;
 
-    largePadX.forEach((x, idx) => {
-      // Almohadilla de oro rectangular
-      const padGeo = new THREE.PlaneGeometry(6.6, 7.8);
-      const padMesh = new THREE.Mesh(padGeo, goldMat);
-      padMesh.position.set(x, 0, 0.05);
-      padMesh.userData = { partId: 'conector-borde', name: `Pin ${padLabels[idx]}` };
-      this.clickableParts.push(padMesh);
-      edgeGroup.add(padMesh);
+    // --- 1. LAS 5 GRANDES ALMOHADILLAS DE ORO CON ORIFICIO CENTRAL Y BISEL 3D ---
+    padXPositions.forEach((x, idx) => {
+      // Forma de la almohadilla grande con su orificio central sustraído
+      const padShape = new THREE.Shape();
+      const pw2 = padW / 2;
+      const ph2 = padH / 2;
 
-      // Orificio central circular (metalizado de orificio pasante)
-      const holeGeo = new THREE.CircleGeometry(1.65, 24);
-      const holeMat = new THREE.MeshBasicMaterial({ color: 0x0a0c10 });
-      const holeMesh = new THREE.Mesh(holeGeo, holeMat);
-      holeMesh.position.set(x, 0.6, 0.08);
-      edgeGroup.add(holeMesh);
+      padShape.moveTo(-pw2, -ph2);
+      padShape.lineTo(pw2, -ph2);
+      padShape.lineTo(pw2, ph2 - 1.2);
+      padShape.quadraticCurveTo(pw2, ph2, pw2 - 1.2, ph2);
+      padShape.lineTo(-pw2 + 1.2, ph2);
+      padShape.quadraticCurveTo(-pw2, ph2, -pw2, ph2 - 1.2);
+      padShape.closePath();
+
+      // Orificio central circular
+      const holePath = new THREE.Path();
+      holePath.absarc(0, 0, holeRadius, 0, Math.PI * 2, false);
+      padShape.holes.push(holePath);
+
+      // Extrusión 3D de la almohadilla de oro frontal (con relieve real)
+      const padExtrudeSettings = {
+        depth: 0.12,
+        bevelEnabled: true,
+        bevelSegments: 2,
+        bevelSize: 0.08,
+        bevelThickness: 0.08
+      };
+
+      const padGeo = new THREE.ExtrudeGeometry(padShape, padExtrudeSettings);
+      padGeo.center();
+
+      const padMeshFront = new THREE.Mesh(padGeo, goldMat);
+      padMeshFront.position.set(x, holeY, pcbDepth / 2 + 0.1);
+      padMeshFront.userData = { partId: 'conector-borde', name: `Pin ${padLabels[idx]}` };
+      this.clickableParts.push(padMeshFront);
+      edgeGroup.add(padMeshFront);
+
+      // Almohadilla de oro gemela en la cara trasera (Back Face)
+      const padMeshBack = new THREE.Mesh(padGeo, goldMat);
+      padMeshBack.position.set(x, holeY, -pcbDepth / 2 - 0.1);
+      padMeshBack.userData = { partId: 'conector-borde', name: `Pin ${padLabels[idx]}` };
+      this.clickableParts.push(padMeshBack);
+      edgeGroup.add(padMeshBack);
+
+      // --- BARRILES METÁLICOS DE ORO INTERNOS (Revestimiento tubular pasante del orificio) ---
+      const barrelGeo = new THREE.CylinderGeometry(holeRadius, holeRadius, pcbDepth + 0.28, 24, 1, true);
+      barrelGeo.rotateX(Math.PI / 2);
+      const barrelMat = new THREE.MeshStandardMaterial({
+        color: 0xfcc62c,
+        metalness: 0.88,
+        roughness: 0.2,
+        side: THREE.DoubleSide
+      });
+      const barrelMesh = new THREE.Mesh(barrelGeo, barrelMat);
+      barrelMesh.position.set(x, holeY, 0);
+      edgeGroup.add(barrelMesh);
     });
 
-    // 20 Pines intermedios delgados
-    for (let i = -24; i <= 24; i += 2.1) {
-      if (largePadX.some(x => Math.abs(x - i) < 3.2)) continue;
-      const stripeGeo = new THREE.PlaneGeometry(1.0, 5.2);
-      const stripeMesh = new THREE.Mesh(stripeGeo, goldMat);
-      stripeMesh.position.set(i, -1.0, 0.05);
-      edgeGroup.add(stripeMesh);
-    }
+    // --- 2. LOS 20 PINES INTERMEDIOS DELGADOS (Grupados entre las almohadillas grandes) ---
+    // Paso de pines oficial de 1.27 mm
+    const smallPinXList = [
+      // Entre Pin 0 y Pin 1 (4 pines)
+      -17.5, -16.23, -14.96, -13.69,
+      // Entre Pin 1 y Pin 2 (5 pines)
+      -7.54, -6.27, -5.00, -3.73, -2.46,
+      // Entre Pin 2 y 3V (5 pines)
+      2.46, 3.73, 5.00, 6.27, 7.54,
+      // Entre 3V y GND (4 pines)
+      13.69, 14.96, 16.23, 17.5
+    ];
+
+    const stripeW = 0.85;
+    const stripeH = 6.4;
+    const stripeGeo = new THREE.BoxGeometry(stripeW, stripeH, 0.12);
+
+    smallPinXList.forEach(sx => {
+      // Pin delgado cara frontal
+      const stripeMeshFront = new THREE.Mesh(stripeGeo, goldMat);
+      stripeMeshFront.position.set(sx, -pcbHeight / 2 + stripeH / 2 + 0.1, pcbDepth / 2 + 0.08);
+      edgeGroup.add(stripeMeshFront);
+
+      // Pin delgado cara trasera
+      const stripeMeshBack = new THREE.Mesh(stripeGeo, goldMat);
+      stripeMeshBack.position.set(sx, -pcbHeight / 2 + stripeH / 2 + 0.1, -pcbDepth / 2 - 0.08);
+      edgeGroup.add(stripeMeshBack);
+    });
 
     this.boardGroup.add(edgeGroup);
   }
@@ -489,7 +647,7 @@ export class MicrobitBoard3D {
       roughness: 0.22
     });
 
-    // Capuchón táctil negro
+    // Capuchón táctil negro satinado
     const buttonMat = new THREE.MeshStandardMaterial({
       color: 0x1f232b,
       roughness: 0.4,
@@ -527,20 +685,40 @@ export class MicrobitBoard3D {
   }
 
   buildLogoTouch() {
-    // Logotipo icónico de BBC micro:bit v2 bañado en oro
+    // Logotipo icónico de BBC micro:bit v2 en oro 3D con ojos recortados
     const logoShape = new THREE.Shape();
-    logoShape.moveTo(-6.0, -2.8);
-    logoShape.lineTo(6.0, -2.8);
-    logoShape.quadraticCurveTo(7.2, 0, 6.0, 2.8);
-    logoShape.lineTo(-6.0, 2.8);
-    logoShape.quadraticCurveTo(-7.2, 0, -6.0, -2.8);
+    logoShape.moveTo(-6.5, -3.2);
+    logoShape.lineTo(6.5, -3.2);
+    logoShape.quadraticCurveTo(7.8, 0, 6.5, 3.2);
+    logoShape.lineTo(-6.5, 3.2);
+    logoShape.quadraticCurveTo(-7.8, 0, -6.5, -3.2);
+    logoShape.closePath();
 
-    const logoGeo = new THREE.ShapeGeometry(logoShape);
+    // Recortes de los ojos izquierdo y derecho
+    const eyeLeft = new THREE.Path();
+    eyeLeft.absarc(-2.4, 0, 1.2, 0, Math.PI * 2, true);
+    logoShape.holes.push(eyeLeft);
+
+    const eyeRight = new THREE.Path();
+    eyeRight.absarc(2.4, 0, 1.2, 0, Math.PI * 2, true);
+    logoShape.holes.push(eyeRight);
+
+    const logoExtrude = {
+      depth: 0.18,
+      bevelEnabled: true,
+      bevelSegments: 2,
+      bevelSize: 0.08,
+      bevelThickness: 0.08
+    };
+
+    const logoGeo = new THREE.ExtrudeGeometry(logoShape, logoExtrude);
+    logoGeo.center();
+
     const logoMat = new THREE.MeshStandardMaterial({
-      color: 0xf5b731,
-      metalness: 0.96,
-      roughness: 0.18,
-      emissive: 0x000000
+      color: 0xfcc62c,
+      metalness: 0.88,
+      roughness: 0.16,
+      emissive: 0x442a00
     });
 
     this.logoMesh = new THREE.Mesh(logoGeo, logoMat);
@@ -747,7 +925,6 @@ export class MicrobitBoard3D {
   }
 
   createJumperWire(parentGroup, startLocal, endTarget, colorHex) {
-    // Curva 3D suave de cable puente
     const p0 = new THREE.Vector3(...startLocal);
     const p3 = new THREE.Vector3(...endTarget);
     const midY = Math.min(p0.y, p3.y) - 6;
@@ -866,10 +1043,10 @@ export class MicrobitBoard3D {
     if (!this.logoMesh) return;
     if (isTouched) {
       this.logoMesh.material.emissive.setHex(0xffea79);
-      this.logoMesh.material.emissiveIntensity = 2.2;
+      this.logoMesh.material.emissiveIntensity = 2.4;
     } else {
-      this.logoMesh.material.emissive.setHex(0x000000);
-      this.logoMesh.material.emissiveIntensity = 0;
+      this.logoMesh.material.emissive.setHex(0x442a00);
+      this.logoMesh.material.emissiveIntensity = 0.5;
     }
   }
 
